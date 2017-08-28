@@ -5,7 +5,7 @@ import re, sys
 from selma_parser import SelmaParseException
 
 "Loads a .selma file and adds all it's data"
-def load_selma_file(card_holding_object,path):
+def load_selma_file(selma_sim_object,path):
 
     # Extract the name of the file and the directory from the path
     search_object = re.search(r'/([^/]+\.selma)',path,flags=0)
@@ -47,27 +47,28 @@ def load_selma_file(card_holding_object,path):
             index += 1
 
     # Separate each card into different strings
-    cards = list()
+    cards = get_definitions_of_type_in_text("card",file_content,literal_dictionary)
 
-    separate_cards_regex = r'card\s*(_LITERAL_\d+)\s*\{([^\}]*)\}'
-    card_text_pieces = re.findall(separate_cards_regex,file_content,flags=0)
-
-    # Parse each card_text_pieces into a SelmaEventCard
-    index = 0
-    while index < len(card_text_pieces):
-        card_name, card_text = card_text_pieces[index]
-        card_name = literal_dictionary[card_name][1:-1]
-
+    for card_tuple in cards:
+        card_name, card_text = card_tuple
         name, conditions, effects, next_cards = parse_text_to_card_contents(card_name,card_text,literal_dictionary)
-        card_holding_object.add_to_deck(name, effects, conditions, next_cards)
-        index += 1
+        selma_sim_object.add_to_deck(name, effects, conditions, next_cards)
+
+    # Separate each character into different strings
+    characters = get_definitions_of_type_in_text("char",file_content,literal_dictionary)
+
+    for character_tuple in characters:
+        character_name, character_text = character_tuple
+
+        selma_sim_object.add_character_to_cast(character_name)
+
 
 "Parses a string into a SelmaEventCard"
 def parse_text_to_card_contents(name, card_text,literal_dictionary):
 
-    conditions =    get_string_from_card_group("conditions",card_text,literal_dictionary)
-    effects    =    get_string_from_card_group("effects",   card_text,literal_dictionary)
-    next_cards =    get_string_from_card_group("next",      card_text,literal_dictionary)
+    conditions =    get_strings_inside_parentheses("conditions",card_text,literal_dictionary)
+    effects    =    get_strings_inside_parentheses("effects",   card_text,literal_dictionary)
+    next_cards =    get_strings_inside_parentheses("next",      card_text,literal_dictionary)
 
     cleaned_next_cards = list()
     for card in next_cards:
@@ -78,8 +79,9 @@ def parse_text_to_card_contents(name, card_text,literal_dictionary):
 
     return name, conditions, effects, cleaned_next_cards
 
-"Returns every line from inside a group () statement"
-def get_string_from_card_group(group_name, card_text,literal_dictionary):
+
+"Returns every line from inside a () statement"
+def get_strings_inside_parentheses(group_name, card_text,literal_dictionary):
     results = list()
     find_group_regex = r'%s\s*\(([^\)]*)\)' % group_name
     search_object = re.search(find_group_regex,card_text,flags=0)
@@ -101,3 +103,22 @@ def get_string_from_card_group(group_name, card_text,literal_dictionary):
         return results
     else:
          return list()
+
+"Returns every definition{} in the text as a list of tuples,"
+"each containing the name of the definition and it's text"
+def get_definitions_of_type_in_text(type,text,literal_dictionary):
+    all_instances = list()
+    find_defintions_regex = r'%s\s*(_LITERAL_\d+)\s*\{([^\}]*)\}' % type
+
+    all_definitions = re.findall(find_defintions_regex,text,flags=0)
+
+    # Parse each definition into a tuple containing name and it's text
+    index = 0
+    while index < len(all_definitions):
+        def_name, def_text = all_definitions[index]
+        def_name = literal_dictionary[def_name][1:-1]
+        _tuple = def_name, def_text
+        all_instances.append(_tuple)
+        index += 1
+
+    return all_instances

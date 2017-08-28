@@ -92,6 +92,11 @@ class SelmaStorySimulation:
         for card_name in self.event_cards.keys():
             self.all_card_names.append(card_name)
 
+    'Adds a character to the cast'
+    def add_character_to_cast(self,name):
+        if self.debug_mode:
+            print("Add character '%s' to cast" % name)
+
     'Do a single step of the simulation'
     def sim_step(self):
         if(self.debug_mode):

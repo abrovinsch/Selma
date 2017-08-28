@@ -1,127 +1,16 @@
 
-card "start"
-{
-  effects
-  (
-    attributes add "has started"
-  )
+char "Jocke" {}
 
-  next
-  (
-    "Commit murder"
-    "Commit murder"
-    "Commit murder"
-    "Commit murder"
-  )
-}
+char "Bengan"
+ {}
 
-card "Commit murder"
-{
+char "Olle"
+ {}
 
-  conditions
-  (
-    attributes has-not "in jail"
-    attributes has-not "honest"
-  )
-  effects
-  (
-    attributes add "under suspicion"
-    attributes add "has commited murder"
-  )
-
-  next
-  (
-    "Arrested for murder"
-    "Get away with crime"
-  )
-}
-
-card "Arrested for murder"
-{
-  conditions
-  (
-    attributes has "has commited murder"
-    attributes has "under suspicion"
-    attributes has-not "in jail"
-  )
-
-  effects
-  (
-    attributes add "in jail"
-  )
-
-}
-
-card "Get away with crime"
-{
-  conditions
-  (
-    attributes has "has commited murder"
-    attributes has "under suspicion"
-    attributes has-not "in jail"
-  )
-
-  effects
-  (
-    attributes remove "under suspicion"
-  )
-
-  next
-  (
-    "Become honest"
-  )
-}
-
-card "Contemplate"{}
+char "Stefan"
+ {}
 
 
-card "Escape jail"
-{
-  conditions
-  (
-    attributes has "in jail"
-  )
-
-  effects
-  (
-    attributes remove "in jail"
-  )
-
-  next
-  (
-    "Become honest"
-  )
-}
-
-card "Change identity"
-{
-  conditions
-  (
-    attributes has "has commited murder"
-    attributes has-not "in jail"
-  )
-
-  effects
-  (
-    attributes remove "under suspicion"
-    attributes remove "has commited murder"
-  )
-
-  next
-  (
-    "Become honest"
-  )
-}
-
-card "Become honest"
-{
-  conditions
-  (
-    attributes has-not "honest"
-  )
-
-  effects
-  (
-    attributes add "honest"
-  )
-}
+card "A"{}
+card "B"{}
+card "C"{}

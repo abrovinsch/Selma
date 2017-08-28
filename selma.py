@@ -60,6 +60,9 @@ class SelmaStorySimulation:
         print ("\n<------SELMA STORY SIMULATION------>\n")
         self.draw_deck = list()
         self.event_cards = {}
+        self.all_card_names = list()
+
+        self.draw_deck_size = 5
 
         self.attributes = list()
         self.character1 = SelmaCharacter()
@@ -84,6 +87,9 @@ class SelmaStorySimulation:
         for i in range(0,amount):
             self.event_cards[name] = SelmaEventCard(name,conditions,effects,next_cards)
 
+        self.all_card_names = list()
+        for card_name in self.event_cards.keys():
+            self.all_card_names.append(card_name)
 
     'Do a single step of the simulation'
     def sim_step(self):
@@ -93,19 +99,31 @@ class SelmaStorySimulation:
         # Take a new card until we have found one that fulfill the condtions
         have_found_card = False
         while not have_found_card:
-            # Check if we need to reshuffle the event cards
-            if len(self.draw_deck) == 0:
-                for card_name in self.event_cards.keys():
-                    self.draw_deck.append(card_name)
 
-            # Take a new random card from the pile
-            picked_card = self.event_cards[random_item_from_list(self.draw_deck)]
+            # Check if we need to add new cards to the draw deck
+            while len(self.draw_deck) < self.draw_deck_size:
+                self.draw_deck.append("#")
+
+            # Take a new random card from the draw deck
+            picked_card_string = random_item_from_list(self.draw_deck)
+            if picked_card_string == "#":
+                picked_card_string = random_item_from_list(self.all_card_names)
+            picked_card = self.event_cards[picked_card_string]
 
             # Discard any card we have tried and failed
-            self.draw_deck.remove(picked_card.name)
+            if picked_card.name in self.draw_deck:
+                self.draw_deck.remove(picked_card_string)
 
             if picked_card.fullfill_conditions(self,self.attributes):
                 have_found_card = True
+
+        #Add the next cards to the draw deck
+        for card_name in picked_card.next_cards:
+            if card_name == "#" or card_name in self.all_card_names:
+                self.draw_deck.append(card_name)
+                del self.draw_deck[0]
+            else:
+                raise SelmaException("Cannot add card name '%s'(on card '%s'.next) to the draw deck because there is no card with that name" % (card_name, picked_card_string))
 
         #Execute the effects of the card
         for fx in picked_card.effects:
@@ -113,7 +131,8 @@ class SelmaStorySimulation:
 
         if(self.debug_mode):
             print ("Picked card: '%s'" % picked_card.name)
-            print("Attributes: %s\n" % self.attributes)
+            print("Attributes: %s" % self.attributes)
+            print("Draw deck: %s\n" % self.draw_deck)
 
         self.log += picked_card.text_out + "\n"
         self.steps_count += 1

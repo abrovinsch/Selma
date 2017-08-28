@@ -4,6 +4,7 @@
 import ast, re
 
 
+"This defines every operator"
 op = {
     "append":"add",
     "append-list":"add-these",
@@ -13,7 +14,7 @@ op = {
     "set-value":"=",
     "value-equals":"=",
     "add-numeric":"+=",
-    "subtract-numeric":"+=",
+    "subtract-numeric":"-=",
 
     "greater-than":">",
     "lesser-than":"<",
@@ -71,7 +72,7 @@ def execute_effect(obj,line):
 
     elif operator == op["subtract-numeric"]:
         var_holder.__dict__[var_name] -= parse_as_number(operator,value)
-        
+
     else:
         raise SelmaParseException("Unknown operator '%s'" % operator)
 
@@ -183,7 +184,7 @@ def get_value_from_reference(obj, string):
 
 "Call when a line uses an invalid operator"
 def parse_error_wrong_type(operator,value,var_name):
-    raise SelmaParseException("cannot use operator '%s' on a '%s' because it is of type %s" % (operator, var_name, value.__class__.__name__))
+    raise SelmaParseException("cannot use operator '%s/%s' on a '%s' because it is of type %s" % (operator, var_name, value.__class__.__name__))
 
 "Returns the Type of a literal statement"
 def get_type_from_literal(value):
@@ -217,7 +218,7 @@ def parse_as_number(operator,value):
     try:
         return float(value)
     except:
-        raise SelmaParseException("operator %s must be used with a numeric value (%s)" % (operator,value))
+        raise SelmaParseException("operator %s must be used with a numeric value (not %s)" % (operator,value))
 
 "Exception to use for parsing errors"
 class SelmaParseException(Exception):

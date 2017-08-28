@@ -28,10 +28,9 @@ def load_selma_file(selma_sim_object,path):
 
     # Remove double spaces
     file_content = re.sub(r'  *',' ',file_content)
+
     # Remove starting spaces
     file_content = re.sub(r'\n *','\n',file_content)
-    # Remove
-    #file_content = re.sub(r'\n *','',file_content)
 
     # Replace string literals
     find_string_literals_regex = r'\"[^\"]*\"'
@@ -83,6 +82,7 @@ def parse_text_to_card_contents(name, card_text,literal_dictionary):
 "Returns every line from inside a () statement"
 def get_strings_inside_parentheses(group_name, card_text,literal_dictionary):
     results = list()
+
     find_group_regex = r'%s\s*\(([^\)]*)\)' % group_name
     search_object = re.search(find_group_regex,card_text,flags=0)
 

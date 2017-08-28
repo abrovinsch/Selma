@@ -60,14 +60,15 @@ class SelmaStorySimulation:
         print ("\n<------SELMA STORY SIMULATION------>\n")
         self.draw_deck = list()
         self.event_cards = {}
+
         self.all_card_names = list()
 
         self.draw_deck_size = 5
 
         self.attributes = list()
-        self.character1 = SelmaCharacter()
-        self.character2 = SelmaCharacter()
         self.custom_vars = defaultdict()
+
+        self.cast = {}
 
         self.debug_mode = True
         self.log = ""
@@ -96,6 +97,13 @@ class SelmaStorySimulation:
     def add_character_to_cast(self,name):
         if self.debug_mode:
             print("Add character '%s' to cast" % name)
+
+        self.cast[name] = SelmaCharacter()
+        self.cast[name].name = name
+
+        self.all_character_names = list()
+        for character_name in self.cast.keys():
+            self.all_character_names.append(character_name)
 
     'Do a single step of the simulation'
     def sim_step(self):
@@ -148,6 +156,7 @@ class SelmaStorySimulation:
         if(self.debug_mode):
             print ("Picked card: '%s'" % picked_card.name)
             print("Attributes: %s" % self.attributes)
+            print("Cast: %s" % self.cast)
             print("Draw deck: %s\n" % self.draw_deck)
 
         self.log += picked_card.text_out + "\n"

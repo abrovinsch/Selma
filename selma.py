@@ -87,6 +87,7 @@ class SelmaStorySimulation:
         for i in range(0,amount):
             self.event_cards[name] = SelmaEventCard(name,conditions,effects,next_cards)
 
+
         self.all_card_names = list()
         for card_name in self.event_cards.keys():
             self.all_card_names.append(card_name)
@@ -96,8 +97,22 @@ class SelmaStorySimulation:
         if(self.debug_mode):
             print("<Simstep %s>" % self.steps_count)
 
-        # Take a new card until we have found one that fulfill the condtions
         have_found_card = False
+
+        # If there is a "start" card, execute it's effects before the simulation begins, and then remove it
+        start_card_name = "start"
+        if self.steps_count == 0 and start_card_name in self.all_card_names:
+            # Execute the effects of the start card
+            for fx in self.event_cards[start_card_name].effects:
+                selma_parser.execute_effect(self,fx)
+
+            # Add the start cards "next"s to the draw deck
+            for card_name in self.event_cards[start_card_name].next_cards:
+                self.add_to_draw_deck(card_name)
+
+            self.all_card_names.remove(start_card_name)
+
+        # Take a new card until we have found one that fulfill the condtions
         while not have_found_card:
 
             # Check if we need to add new cards to the draw deck
@@ -119,11 +134,7 @@ class SelmaStorySimulation:
 
         #Add the next cards to the draw deck
         for card_name in picked_card.next_cards:
-            if card_name == "#" or card_name in self.all_card_names:
-                self.draw_deck.append(card_name)
-                del self.draw_deck[0]
-            else:
-                raise SelmaException("Cannot add card name '%s'(on card '%s'.next) to the draw deck because there is no card with that name" % (card_name, picked_card_string))
+            self.add_to_draw_deck(card_name)
 
         #Execute the effects of the card
         for fx in picked_card.effects:
@@ -136,6 +147,14 @@ class SelmaStorySimulation:
 
         self.log += picked_card.text_out + "\n"
         self.steps_count += 1
+
+    'Adds the card named "card_name" to the deck of possible cards'
+    def add_to_draw_deck(self, card_name):
+        if card_name == "#" or card_name in self.all_card_names:
+            self.draw_deck.append(card_name)
+            del self.draw_deck[0]
+        else:
+            raise SelmaException("Cannot add card name '%s'(on card '%s'.next) to the draw deck because there is no card with that name" % (card_name, picked_card_string))
 
 'Returns a random item from any list'
 def random_item_from_list(l):

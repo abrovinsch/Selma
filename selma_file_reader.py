@@ -76,9 +76,6 @@ def parse_text_to_card_contents(name, card_text,literal_dictionary):
     if len(cleaned_next_cards) == 0:
         cleaned_next_cards.append("#")
 
-    if len(effects) == 0:
-        raise SelmaParseException("Card '%s' must have at least one effect!" % name)
-
     return name, conditions, effects, cleaned_next_cards
 
 "Returns every line from inside a group () statement"

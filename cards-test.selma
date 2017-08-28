@@ -1,10 +1,27 @@
 
+card "start"
+{
+  effects
+  (
+    attributes add "has started"
+  )
+
+  next
+  (
+    "Commit murder"
+    "Commit murder"
+    "Commit murder"
+    "Commit murder"
+  )
+}
+
 card "Commit murder"
 {
 
   conditions
   (
     attributes has-not "in jail"
+    attributes has-not "honest"
   )
   effects
   (
@@ -40,6 +57,7 @@ card "Get away with crime"
   conditions
   (
     attributes has "has commited murder"
+    attributes has "under suspicion"
     attributes has-not "in jail"
   )
 
@@ -47,15 +65,14 @@ card "Get away with crime"
   (
     attributes remove "under suspicion"
   )
-}
 
-card "Contemplate"
-{
-  effects
+  next
   (
-    attributes add "Contemplating"
+    "Become honest"
   )
 }
+
+card "Contemplate"{}
 
 
 card "Escape jail"
@@ -68,6 +85,11 @@ card "Escape jail"
   effects
   (
     attributes remove "in jail"
+  )
+
+  next
+  (
+    "Become honest"
   )
 }
 
@@ -83,5 +105,23 @@ card "Change identity"
   (
     attributes remove "under suspicion"
     attributes remove "has commited murder"
+  )
+
+  next
+  (
+    "Become honest"
+  )
+}
+
+card "Become honest"
+{
+  conditions
+  (
+    attributes has-not "honest"
+  )
+
+  effects
+  (
+    attributes add "honest"
   )
 }

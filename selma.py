@@ -2,7 +2,7 @@
 #!/usr/bin/python
 
 from collections import defaultdict
-import random, selma_parser
+import random, selma_parser, selma_file_reader
 
 class SelmaCharacter:
     def __init__(self):
@@ -15,18 +15,17 @@ class SelmaCharacter:
 class SelmaEventCard:
 
     'At initialization, copy all of the supplied variables'
-    def __init__(self,name="unnamed event card",conditions=list(),effects=list()):
+    def __init__(self,name="unnamed event card",conditions=list(),effects=list(),next_cards=list()):
 
         self.name = name
 
         self.conditions = conditions.copy()
         self.effects = effects.copy()
+        self.next_cards = next_cards.copy()
 
         self.character1 = SelmaCharacter()
         self.character2 = SelmaCharacter()
-
         self.text_out = "#%s#" % name
-
 
     'Returns true if all the condtions on this card are met'
     def fullfill_conditions(self,obj,_attributes):
@@ -50,36 +49,40 @@ class SelmaEventCard:
         if len(self.conditions):
             result += "  conditions=%s\n" % self.conditions
 
+        if len(self.next_cards):
+            result += "  next=%s\n" % self.next_cards
+
         return result
 
 class SelmaStorySimulation:
 
-
-    steps_count = 0
-    log = ""
-
-    debug_mode = True
-
-    event_cards = list()
-    draw_deck = list()
-
     def __init__(self):
         print ("\n<------SELMA STORY SIMULATION------>\n")
-        self._draw_deck = list()
-        self._event_cards = list()
+        self.draw_deck = list()
+        self.event_cards = {}
 
         self.attributes = list()
         self.character1 = SelmaCharacter()
         self.character2 = SelmaCharacter()
         self.custom_vars = defaultdict()
 
+        self.debug_mode = True
+        self.log = ""
+        self.steps_count = 0
+
+    "Loads cards and characters into this simulation from a .selma file"
+    def load_from_file(self, path):
+        selma_file_reader.load_selma_file(self,path)
+
     'This function makes a copy of the supplied'
     'card and add n instances of it to the deck'
-    def add_to_deck(self,name="unnamed card",effects=list(),conditions=list(),amount=1):
+    def add_to_deck(self,name="unnamed card",effects=list(),conditions=list(),next_cards=list(),amount=1):
+
+        if self.debug_mode:
+            print("Add card '%s' to deck" % name)
+
         for i in range(0,amount):
-            self.event_cards.append(
-                SelmaEventCard(name,conditions,effects)
-            )
+            self.event_cards[name] = SelmaEventCard(name,conditions,effects,next_cards)
 
 
     'Do a single step of the simulation'
@@ -92,27 +95,26 @@ class SelmaStorySimulation:
         while not have_found_card:
             # Check if we need to reshuffle the event cards
             if len(self.draw_deck) == 0:
-                for card in self.event_cards:
-                    self.draw_deck.append(card)
+                for card_name in self.event_cards.keys():
+                    self.draw_deck.append(card_name)
 
             # Take a new random card from the pile
-            picked_card = random_item_from_list(self.draw_deck)
+            picked_card = self.event_cards[random_item_from_list(self.draw_deck)]
 
             # Discard any card we have tried and failed
-            self.draw_deck.remove(picked_card)
+            self.draw_deck.remove(picked_card.name)
 
             if picked_card.fullfill_conditions(self,self.attributes):
                 have_found_card = True
 
         #Execute the effects of the card
-        if(self.debug_mode):
-            print ("Picked card: '%s'" % picked_card.name)
-
         for fx in picked_card.effects:
             selma_parser.execute_effect(self,fx)
 
         if(self.debug_mode):
+            print ("Picked card: '%s'" % picked_card.name)
             print("Attributes: %s\n" % self.attributes)
+
         self.log += picked_card.text_out + "\n"
         self.steps_count += 1
 
@@ -120,8 +122,9 @@ class SelmaStorySimulation:
 def random_item_from_list(l):
 
     if len(l) == 0:
-        print("Error: Can't grab item from empty list")
-        return
-
+        raise SelmaException("Can't grab from empty list!")
     index = random.randint(0,len(l)-1)
     return l[index]
+
+class SelmaException (Exception):
+    pass

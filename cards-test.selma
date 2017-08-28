@@ -1,0 +1,26 @@
+
+card "Meet cat"
+{
+  effects
+  (
+    attributes append "has met cat"
+  )
+
+  next
+  (
+    "Meet dog"
+  )
+}
+
+card "Meet dog"
+{
+  effects
+  (
+    attributes append "has met dog"
+  )
+
+  next
+  (
+    "Meet cat"
+  )
+}

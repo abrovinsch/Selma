@@ -3,9 +3,9 @@
 
 import re, sys
 from selma_parser import SelmaParseException
-from selma import SelmaEventCard
+
 "Loads a .selma file and adds all it's data"
-def load_selma_file(path):
+def load_selma_file(card_holding_object,path):
 
     # Extract the name of the file and the directory from the path
     search_object = re.search(r'/([^/]+\.selma)',path,flags=0)
@@ -57,22 +57,29 @@ def load_selma_file(path):
     while index < len(card_text_pieces):
         card_name, card_text = card_text_pieces[index]
         card_name = literal_dictionary[card_name][1:-1]
-        cards.append(parse_text_to_card(card_name,card_text,literal_dictionary))
+
+        name, conditions, effects, next_cards = parse_text_to_card_contents(card_name,card_text,literal_dictionary)
+        card_holding_object.add_to_deck(name, effects, conditions, next_cards)
         index += 1
 
-    return cards
-
 "Parses a string into a SelmaEventCard"
-def parse_text_to_card(name, card_text,literal_dictionary):
+def parse_text_to_card_contents(name, card_text,literal_dictionary):
 
-    conditions = get_string_from_card_group("conditions",card_text,literal_dictionary)
-    effects =    get_string_from_card_group("effects",   card_text,literal_dictionary)
+    conditions =    get_string_from_card_group("conditions",card_text,literal_dictionary)
+    effects    =    get_string_from_card_group("effects",   card_text,literal_dictionary)
+    next_cards =    get_string_from_card_group("next",      card_text,literal_dictionary)
+
+    cleaned_next_cards = list()
+    for card in next_cards:
+        cleaned_next_cards.append(card[1:-1])
+
+    if len(cleaned_next_cards) == 0:
+        cleaned_next_cards.append("#")
 
     if len(effects) == 0:
         raise SelmaParseException("Card '%s' must have at least one effect!" % name)
 
-    card = SelmaEventCard(name, conditions, effects)
-    return card
+    return name, conditions, effects, cleaned_next_cards
 
 "Returns every line from inside a group () statement"
 def get_string_from_card_group(group_name, card_text,literal_dictionary):

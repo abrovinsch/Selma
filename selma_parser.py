@@ -3,12 +3,33 @@
 
 import ast, re
 
+
+op = {
+    "append":"add",
+    "append-list":"add-these",
+    "remove-from-list":"remove",
+    "remove-from-list-many":"remove-these",
+
+    "set-value":"=",
+    "value-equals":"=",
+    "add-numeric":"+=",
+    "subtract-numeric":"+=",
+
+    "greater-than":">",
+    "lesser-than":"<",
+    "greater-than-or-equal":">=",
+    "lesser-than-or-equal":"<=",
+
+    "list-contains":"has",
+    "list-doesnt-contain":"has-not"
+}
+
 "Execute the effect in 'line' on the object 'obj'"
 def execute_effect(obj,line):
 
     var_name, var_holder, operator, value, var_type, value_type = parse_line_to_parts(obj,line)
 
-    if operator == "=":
+    if operator == op["set-value"]:
         if value_type == "float" or value_type == "int":
             var_holder.__dict__[var_name] = parse_as_number(operator,value)
         elif var_type == "list":
@@ -16,13 +37,13 @@ def execute_effect(obj,line):
         else:
             var_holder.__dict__[var_name] = value
 
-    elif operator == "append":
+    elif operator == op["append"]:
         if var_type == "list":
             var_holder.__dict__[var_name].append(value)
         else:
             raise parse_error_wrong_type(operator,value,var_name)
 
-    elif operator == "append-list":
+    elif operator == op["append-list"]:
         if var_type == "list":
             list_to_append = parse_as_list(value)
             for item in list_to_append:
@@ -30,14 +51,14 @@ def execute_effect(obj,line):
         else:
             raise parse_error_wrong_type(operator,value,var_name)
 
-    elif operator == "remove":
+    elif operator == op["remove-from-list"]:
         if var_type == "list":
             if value in var_holder.__dict__[var_name]:
                 var_holder.__dict__[var_name].remove(value)
         else:
             raise parse_error_wrong_type(operator,value,var_name)
 
-    elif operator == "remove-list":
+    elif operator == op["remove-from-list-many"]:
         if var_type == "list":
             list_to_remove = parse_as_list(value)
             for item in list_to_remove:
@@ -45,8 +66,12 @@ def execute_effect(obj,line):
         else:
             raise parse_error_wrong_type(operator,value,var_name)
 
-    elif operator == "+=":
+    elif operator == op["add-numeric"]:
         var_holder.__dict__[var_name] += parse_as_number(operator,value)
+
+    elif operator == op["subtract-numeric"]:
+        var_holder.__dict__[var_name] -= parse_as_number(operator,value)
+        
     else:
         raise SelmaParseException("Unknown operator '%s'" % operator)
 
@@ -54,7 +79,7 @@ def execute_effect(obj,line):
 def evaluate_condition(obj,line):
     var_name, var_holder, operator, value, var_type, value_type = parse_line_to_parts(obj,line)
 
-    if operator == "=":
+    if operator == op["value-equals"]:
         if value_type == "int" or value_type == "float":
             return var_holder.__dict__[var_name] == parse_as_number(operator,value)
         elif var_type == "list":
@@ -62,28 +87,28 @@ def evaluate_condition(obj,line):
         else:
             return var_holder.__dict__[var_name] == value
 
-    elif operator == ">":
+    elif operator == op["greater-than"]:
         return var_holder.__dict__[var_name] > parse_as_number(operator,value)
 
-    elif operator == "<":
+    elif operator == op["lesser-than"]:
         return var_holder.__dict__[var_name] < parse_as_number(operator,value)
 
-    elif operator == ">=":
+    elif operator == op["greater-than-or-equal"]:
         if var_type == "int" or var_type == "float":
             return var_holder.__dict__[var_name] >= parse_as_number(operator,value)
         else:
             parse_error_wrong_type(operator,value,var_name)
 
-    elif operator == "<=":
+    elif operator == op["greater-than-or-equal"]:
         return var_holder.__dict__[var_name] <= parse_as_number(operator,value)
 
-    elif operator == "doesnt-contain":
+    elif operator == op["list-doesnt-contain"]:
         if var_type == "list":
             return not value in var_holder.__dict__[var_name]
         else:
             parse_error_wrong_type(operator,value,var_name)
 
-    elif operator == "contains":
+    elif operator == op["list-contains"]:
         if var_type == "list":
             return value in var_holder.__dict__[var_name]
         else:

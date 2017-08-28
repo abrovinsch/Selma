@@ -3,7 +3,7 @@ card "Meet cat"
 {
   effects
   (
-    attributes append "has met cat"
+    attributes add "has met cat"
   )
 
   next
@@ -16,11 +16,19 @@ card "Meet dog"
 {
   effects
   (
-    attributes append "has met dog"
+    attributes add "has met dog"
   )
 
   next
   (
     "Meet cat"
+  )
+}
+
+card "Sunny Day"
+{
+  effects
+  (
+    attributes add "weather is nice"
   )
 }

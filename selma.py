@@ -11,6 +11,11 @@ class SelmaCharacter:
         self.attributes = list()
         self.inventory = list()
         self.mood = "neutral"
+        self.var = {}
+
+    def __str__(self):
+        result = "<---%s--->" % self.name;
+        return result
 
 class SelmaEventCard:
 
@@ -58,6 +63,7 @@ class SelmaStorySimulation:
 
     def __init__(self):
         print ("\n<------SELMA STORY SIMULATION------>\n")
+
         self.draw_deck = list()
         self.event_cards = {}
 
@@ -66,7 +72,7 @@ class SelmaStorySimulation:
         self.draw_deck_size = 5
 
         self.attributes = list()
-        self.custom_vars = defaultdict()
+        self.var = {}
 
         self.cast = {}
 
@@ -121,7 +127,7 @@ class SelmaStorySimulation:
 
             # Add the start cards "next"s to the draw deck
             for card_name in self.event_cards[start_card_name].next_cards:
-                self.add_to_draw_deck(card_name)
+                self.add_card_to_draw_deck(card_name)
 
             self.all_card_names.remove(start_card_name)
 
@@ -147,7 +153,7 @@ class SelmaStorySimulation:
 
         #Add the next cards to the draw deck
         for card_name in picked_card.next_cards:
-            self.add_to_draw_deck(card_name)
+            self.add_card_to_draw_deck(card_name)
 
         #Execute the effects of the card
         for fx in picked_card.effects:
@@ -163,7 +169,7 @@ class SelmaStorySimulation:
         self.steps_count += 1
 
     'Adds the card named "card_name" to the deck of possible cards'
-    def add_to_draw_deck(self, card_name):
+    def add_card_to_draw_deck(self, card_name):
         if card_name == "#" or card_name in self.all_card_names:
             self.draw_deck.append(card_name)
             del self.draw_deck[0]

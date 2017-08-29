@@ -45,6 +45,9 @@ def load_selma_file(selma_sim_object,path):
             file_content = file_content.replace(s,literal_name)
             index += 1
 
+    print(literal_dictionary)
+    print(file_content)
+
     # Separate each card into different strings
     cards = get_definitions_of_type_in_text("card",file_content,literal_dictionary)
 
@@ -93,12 +96,14 @@ def get_strings_inside_parentheses(group_name, card_text,literal_dictionary):
         for line in whole_group_string.split("\n"):
             if len(line) > 0:
                 line = line.strip()
-                find_literal_regex = r'(_LITERAL_\d)+'
-                match_literal_object = re.search(find_literal_regex,line,flags=0)
+                find_literal_regex = r'(_LITERAL_\d+)'
 
-                if match_literal_object:
+
+                match_literal_object = re.search(find_literal_regex,line,flags=0)
+                while match_literal_object:
                     literal = match_literal_object.group(1)
                     line = line.replace(literal,literal_dictionary[literal])
+                    match_literal_object = re.search(find_literal_regex,line,flags=0)
                 results.append(line)
         return results
     else:

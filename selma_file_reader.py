@@ -63,17 +63,18 @@ def load_selma_file(selma_sim_object,path):
 
     for character_tuple in characters:
         character_name, character_text = character_tuple
+        properties, attributes, inventory = parse_text_to_character_contents(character_name, character_text, literal_dictionary )
+        selma_sim_object.add_character_to_cast(character_name, properties, attributes, inventory)
 
-        selma_sim_object.add_character_to_cast(character_name)
 
-
-"Parses a string into a SelmaEventCard"
+"Parses a string for a event card"
 def parse_text_to_card_contents(name, card_text,literal_dictionary):
 
     conditions =    get_strings_inside_parentheses("conditions",card_text,literal_dictionary)
     effects    =    get_strings_inside_parentheses("effects",   card_text,literal_dictionary)
     next_cards =    get_strings_inside_parentheses("next",      card_text,literal_dictionary)
 
+    # Remove the quotes from the next card strings
     cleaned_next_cards = list()
     for card in next_cards:
         cleaned_next_cards.append(card[1:-1])
@@ -83,6 +84,14 @@ def parse_text_to_card_contents(name, card_text,literal_dictionary):
 
     return name, conditions, effects, cleaned_next_cards
 
+"Parses a string for a event card"
+def parse_text_to_character_contents(name, character_text,literal_dictionary):
+
+    properties =    get_strings_inside_parentheses("properties",character_text,literal_dictionary)
+    attributes =    get_strings_inside_parentheses("attributes",character_text,literal_dictionary)
+    inventory  =    get_strings_inside_parentheses("inventory", character_text,literal_dictionary)
+
+    return properties, attributes, inventory
 
 "Returns every line from inside a () statement"
 def get_strings_inside_parentheses(group_name, card_text,literal_dictionary):

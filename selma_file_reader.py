@@ -63,8 +63,8 @@ def load_selma_file(selma_sim_object,path):
 
     for character_tuple in characters:
         character_name, character_text = character_tuple
-        properties, attributes, inventory = parse_text_to_character_contents(character_name, character_text, literal_dictionary )
-        selma_sim_object.add_character_to_cast(character_name, properties, attributes, inventory)
+        init_effects, attributes, inventory = parse_text_to_character_contents(character_name, character_text, literal_dictionary )
+        selma_sim_object.add_character_to_cast(character_name, init_effects, attributes, inventory)
 
 
 "Parses a string for a event card"
@@ -87,11 +87,11 @@ def parse_text_to_card_contents(name, card_text,literal_dictionary):
 "Parses a string for a event card"
 def parse_text_to_character_contents(name, character_text,literal_dictionary):
 
-    properties =    get_strings_inside_parentheses("properties",character_text,literal_dictionary)
-    attributes =    get_strings_inside_parentheses("attributes",character_text,literal_dictionary)
-    inventory  =    get_strings_inside_parentheses("inventory", character_text,literal_dictionary)
+    init_effects =    get_strings_inside_parentheses("init",      character_text,literal_dictionary)
+    attributes   =    get_strings_inside_parentheses("attributes",character_text,literal_dictionary)
+    inventory    =    get_strings_inside_parentheses("inventory", character_text,literal_dictionary)
 
-    return properties, attributes, inventory
+    return init_effects, attributes, inventory
 
 "Returns every line from inside a () statement"
 def get_strings_inside_parentheses(group_name, card_text,literal_dictionary):
@@ -108,7 +108,6 @@ def get_strings_inside_parentheses(group_name, card_text,literal_dictionary):
             if len(line) > 0:
                 line = line.strip()
                 find_literal_regex = r'(_LITERAL_\d+)'
-
 
                 match_literal_object = re.search(find_literal_regex,line,flags=0)
                 while match_literal_object:

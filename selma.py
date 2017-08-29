@@ -102,7 +102,7 @@ class SelmaStorySimulation:
             self.all_card_names.append(card_name)
 
     'Adds a character to the cast'
-    def add_character_to_cast(self,name, properties, attributes, inventory):
+    def add_character_to_cast(self,name, init_effects, attributes, inventory):
         if self.debug_mode:
             print("Add character '%s' to cast" % name)
 
@@ -112,7 +112,7 @@ class SelmaStorySimulation:
         self.cast[name].inventory = inventory.copy()
 
         # Set all the variables
-        for fx in properties:
+        for fx in init_effects:
             selma_parser.execute_effect(self.cast[name],fx)
 
         self.all_character_names = list()

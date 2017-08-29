@@ -14,7 +14,7 @@ class SelmaCharacter:
         self.var = {}
 
     def __str__(self):
-        result = "<---%s--->" % self.name;
+        result = "<---Character %s--->" % self.name;
         return result
 
 class SelmaEventCard:
@@ -82,7 +82,9 @@ class SelmaStorySimulation:
 
     "Loads cards and characters into this simulation from a .selma file"
     def load_from_file(self, path):
+        print("<-Load file '%s'->\n" % path)
         selma_file_reader.load_selma_file(self,path)
+        print("")
 
     'This function makes a copy of the supplied'
     'card and add n instances of it to the deck'

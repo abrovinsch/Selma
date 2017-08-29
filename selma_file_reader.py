@@ -28,9 +28,14 @@ def load_selma_file(selma_sim_object,path):
 
     # Remove double spaces
     file_content = re.sub(r'  *',' ',file_content)
-
-    # Remove starting spaces
-    file_content = re.sub(r'\n *','\n',file_content)
+    # Remove whitespace in beginning of lines
+    file_content = re.sub(r'\n\s*','\n',file_content)
+    # Remove empty lines
+    file_content = re.sub(r'\n+','\n',file_content)
+    # Remove inline comments
+    file_content = re.sub(r'//.*','\n',file_content)
+    # Remove multiline comments
+    file_content = re.sub(r'/\*[\S|\s]*\*/','',file_content)
 
     # Replace string literals
     find_string_literals_regex = r'\"[^\"]*\"'
@@ -44,9 +49,6 @@ def load_selma_file(selma_sim_object,path):
             literal_dictionary[literal_name] = s
             file_content = file_content.replace(s,literal_name)
             index += 1
-
-    print(literal_dictionary)
-    print(file_content)
 
     # Separate each card into different strings
     cards = get_definitions_of_type_in_text("card",file_content,literal_dictionary)

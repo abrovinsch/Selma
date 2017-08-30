@@ -63,7 +63,7 @@ def load_selma_file(selma_sim_object,path):
 
     for character_tuple in characters:
         character_name, character_text = character_tuple
-        init_effects, attributes, inventory = parse_text_to_character_contents(character_name, character_text, literal_dictionary )
+        init_effects, attributes, inventory =  parse_text_to_character_contents(character_name, character_text, literal_dictionary )
         selma_sim_object.add_character_to_cast(character_name, init_effects, attributes, inventory)
 
 
@@ -105,16 +105,18 @@ def get_strings_inside_parentheses(group_name, card_text,literal_dictionary):
         whole_group_string = search_object.group(1)
 
         for line in whole_group_string.split("\n"):
-            if len(line) > 0:
+            if len(line) > 0:   #Ignore empty lines
                 line = line.strip()
                 find_literal_regex = r'(_LITERAL_\d+)'
 
+                # Replace every literal on the line
                 match_literal_object = re.search(find_literal_regex,line,flags=0)
                 while match_literal_object:
                     literal = match_literal_object.group(1)
                     line = line.replace(literal,literal_dictionary[literal])
                     match_literal_object = re.search(find_literal_regex,line,flags=0)
                 results.append(line)
+
         return results
     else:
          return list()

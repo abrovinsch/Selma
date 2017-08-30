@@ -15,6 +15,16 @@ class SelmaCharacter:
 
     def __str__(self):
         result = "<---Character %s--->" % self.name;
+
+        if len(self.attributes):
+            result += "  effects=%s\n" % self.attributes
+
+        if len(self.inventory):
+            result += "  inventory=%s\n" % self.inventory
+
+        if len(self.next_cards):
+            var += "  var=%s\n" % self.var
+
         return result
 
 class SelmaEventCard:
@@ -61,8 +71,8 @@ class SelmaEventCard:
 
 class SelmaStorySimulation:
 
-    def __init__(self):
-        print ("\n<------SELMA STORY SIMULATION------>\n")
+    def __init__(self,debug_mode=True,allow_output=True):
+
 
         self.draw_deck = list()
         self.event_cards = {}
@@ -76,15 +86,24 @@ class SelmaStorySimulation:
 
         self.cast = {}
 
-        self.debug_mode = True
+        self.debug_mode = debug_mode
+        self.allow_output = allow_output
+        selma_parser.allow_print_out = allow_output
+
         self.log = ""
         self.steps_count = 0
 
+        if(self.allow_output):
+            print ("\n<------SELMA STORY SIMULATION------>\n")
+
     "Loads cards and characters into this simulation from a .selma file"
     def load_from_file(self, path):
-        print("<-Load file '%s'->\n" % path)
+        if self.allow_output:
+            print("<-Load file '%s'->\n" % path)
         selma_file_reader.load_selma_file(self,path)
-        print("")
+
+        if self.allow_output:
+            print("")
 
     'This function makes a copy of the supplied'
     'card and add n instances of it to the deck'
@@ -111,13 +130,12 @@ class SelmaStorySimulation:
         self.cast[name].attributes = attributes.copy()
         self.cast[name].inventory = inventory.copy()
 
-        # Set all the variables
+        # Execute the init "script" to set variables etc.
         for fx in init_effects:
             selma_parser.execute_effect(self.cast[name],fx)
 
-        self.all_character_names = list()
-        for character_name in self.cast.keys():
-            self.all_character_names.append(character_name)
+        # Recreate the character list
+        self.all_character_names = list(self.cast.keys())
 
     'Do a single step of the simulation'
     def sim_step(self):
@@ -180,15 +198,17 @@ class SelmaStorySimulation:
     def add_card_to_draw_deck(self, card_name):
         if card_name == "#" or card_name in self.all_card_names:
             self.draw_deck.append(card_name)
-            del self.draw_deck[0]
+            del self.draw_deck[0] # Discard the oldest card in the deck
         else:
             raise SelmaException("Cannot add card name '%s'(on card '%s'.next) to the draw deck because there is no card with that name" % (card_name, picked_card_string))
 
+    def execute_effect(self,effect):
+        selma_parser.execute_effect(self,effect)
+
 'Returns a random item from any list'
 def random_item_from_list(l):
-
     if len(l) == 0:
-        raise SelmaException("Can't grab from empty list!")
+        raise SelmaException("Can't grab ranom item from an empty list!")
     index = random.randint(0,len(l)-1)
     return l[index]
 

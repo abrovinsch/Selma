@@ -1,3 +1,4 @@
 *.pyc
 selma-test.py
 *.selma
+*.command

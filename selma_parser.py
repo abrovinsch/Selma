@@ -35,13 +35,13 @@ op = {
 
 error_no_such_variable = "There is no variable named '%s' on object %s"
 
+allow_print_out = True
+
 "Execute the effect in 'line' on the object 'obj'"
 def execute_effect(obj,line):
 
     var_name, parent_object, operator, value, var_type, value_type = parse_line_to_parts(obj,line)
-
     var_holder = get_var_holder(parent_object)
-
 
     if operator == op["set-value"]:
         if value_type == "float" or value_type == "int":
@@ -96,7 +96,8 @@ def execute_effect(obj,line):
     elif operator == op["print-value"]:
         if value == "":
             value = "$"
-        print(value.replace("$",str(var_holder[var_name])))
+        if(allow_print_out):
+            print(value.replace("$",str(var_holder[var_name])))
 
     elif operator == op["define-numeric-variable"]:
         add_variable_to_dict(var_holder[var_name],var_name,value,0)
@@ -112,8 +113,8 @@ def execute_effect(obj,line):
 
 "Return true if the statement in 'line' is true on object 'obj'"
 def evaluate_condition(obj,line):
-    var_name, parent_object, operator, value, var_type, value_type = parse_line_to_parts(obj,line)
 
+    var_name, parent_object, operator, value, var_type, value_type = parse_line_to_parts(obj,line)
     var_holder = get_var_holder(parent_object)
 
     if operator == op["value-equals"]:
@@ -165,7 +166,12 @@ def parse_line_to_parts(calling_object,line):
     matches = match_object.groups()
 
     parent_object, var_name = get_variable_reference(calling_object,matches[0])
+
     operator = matches[1]
+
+    if not operator in op.values():
+        raise SelmaParseException("Unknown operator '%s' in line '%s'" % (operator, line))
+
     value    = matches[2]
 
     value_type = get_type_from_literal(value)
@@ -207,7 +213,7 @@ def get_variable_reference(parent_object, string):
 
         else:
             t = parent_object.__class__.__name__
-            raise SelmaParseException(error_no_such_variable % (var_name, var_holder))
+            raise SelmaParseException(error_no_such_variable % (var_name, var_holder.__class__.__name__))
 
         rest_string   = string[string.index(".")+1:]
 
@@ -226,7 +232,7 @@ def get_value_from_reference(parent_object, string):
     if v_name in var_holder:
         return var_holder[v_name]
     else:
-        raise SelmaParseException(error_no_such_variable % (v_name, var_holder))
+        raise SelmaParseException(error_no_such_variable % (v_name, var_holder.__class__.__name__))
 
 "Call when a line uses an invalid operator"
 def parse_error_wrong_type(operator,type_name,var_name):

@@ -55,8 +55,8 @@ def load_selma_file(selma_sim_object,path):
 
     for card_tuple in cards:
         card_name, card_text = card_tuple
-        name, conditions, effects, next_cards = parse_text_to_card_contents(card_name,card_text,literal_dictionary)
-        selma_sim_object.add_to_deck(name, effects, conditions, next_cards)
+        name, conditions, effects, next_cards, roles = parse_text_to_card_contents(card_name,card_text,literal_dictionary)
+        selma_sim_object.add_to_deck(name, effects, conditions, next_cards, roles)
 
     # Separate each character into different strings
     characters = get_definitions_of_type_in_text("char",file_content,literal_dictionary)
@@ -74,6 +74,18 @@ def parse_text_to_card_contents(name, card_text,literal_dictionary):
     effects    =    get_strings_inside_parentheses("effects",   card_text,literal_dictionary)
     next_cards =    get_strings_inside_parentheses("next",      card_text,literal_dictionary)
 
+    # Find all roles
+    roles = list() # list of tuples of type name:string, lines:list(string)
+    find_roles_regex = r'role\s*(_LITERAL_\d+)\s*(\([^\)]*\))'
+    role_strings = re.findall(find_roles_regex, card_text, flags=0)
+
+    for role_string in role_strings:
+        role_name, role_content = role_string
+        role_name = literal_dictionary[role_name][1:-1]
+        role_lines = get_strings_inside_parentheses("", role_content, literal_dictionary)
+        role_tuple = role_name, role_lines
+        roles.append(role_tuple)
+
     # Remove the quotes from the next card strings
     cleaned_next_cards = list()
     for card in next_cards:
@@ -82,7 +94,7 @@ def parse_text_to_card_contents(name, card_text,literal_dictionary):
     if len(cleaned_next_cards) == 0:
         cleaned_next_cards.append("#")
 
-    return name, conditions, effects, cleaned_next_cards
+    return name, conditions, effects, cleaned_next_cards, roles
 
 "Parses a string for a event card"
 def parse_text_to_character_contents(name, character_text,literal_dictionary):
@@ -94,7 +106,7 @@ def parse_text_to_character_contents(name, character_text,literal_dictionary):
     return init_effects, attributes, inventory
 
 "Returns every line from inside a () statement"
-def get_strings_inside_parentheses(group_name, card_text,literal_dictionary):
+def get_strings_inside_parentheses(group_name, card_text,literal_dictionary, use_string=False):
     results = list()
 
     find_group_regex = r'%s\s*\(([^\)]*)\)' % group_name
@@ -102,7 +114,12 @@ def get_strings_inside_parentheses(group_name, card_text,literal_dictionary):
 
     whole_group_string = ""
     if(search_object):
-        whole_group_string = search_object.group(1)
+        if(use_string):
+            name = search_object.group(1)
+            whole_group_string = search_object.group(2)
+        else:
+            name = ""
+            whole_group_string = search_object.group(1)
 
         for line in whole_group_string.split("\n"):
             if len(line) > 0:   #Ignore empty lines
@@ -116,7 +133,6 @@ def get_strings_inside_parentheses(group_name, card_text,literal_dictionary):
                     line = line.replace(literal,literal_dictionary[literal])
                     match_literal_object = re.search(find_literal_regex,line,flags=0)
                 results.append(line)
-
         return results
     else:
          return list()

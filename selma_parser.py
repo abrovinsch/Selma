@@ -330,7 +330,7 @@ def parse_error_wrong_type(operator,type_name,var_name):
 def get_type_from_literal(value):
     value = value.strip()
 
-    match_object = re.match(r'^\d+\.?\d*$',value,flags=0)
+    match_object = re.match(r'^-?\d+\.?\d*$',value,flags=0)
     if match_object:
         return "float"
 

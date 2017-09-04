@@ -12,6 +12,7 @@ class SelmaCharacter:
         self.personality = list()
         self.inventory = list()
         self.mood = "neutral"
+        self.happiness = 0
         self.var = {}
         self.world = 0
 

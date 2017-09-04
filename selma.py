@@ -7,12 +7,14 @@ import random, selma_parser, selma_file_reader
 class SelmaCharacter:
     def __init__(self):
         self.name= "no name"
+        self.gender= ""
         self.age = 0
         self.attributes = list()
         self.personality = list()
         self.inventory = list()
         self.mood = "neutral"
         self.var = {}
+        self.world = 0
 
     def __str__(self):
         result = "<---Character %s--->" % self.name;
@@ -42,8 +44,6 @@ class SelmaEventCard:
         self.effects = effects.copy()
         self.next_cards = next_cards.copy()
 
-        self.character1 = SelmaCharacter()
-        self.character2 = SelmaCharacter()
         self.text_out = "#%s#" % name
 
         self.roles = {}
@@ -54,16 +54,12 @@ class SelmaEventCard:
 
     'Returns true if all the condtions on this card are met'
     def fullfill_conditions(self,obj,_attributes):
+        obj.roles = {}
 
         if not len(self.conditions) and not len(self.roles) :
             return True
 
-        for condition in self.conditions:
-
-            if not selma_parser.evaluate_condition(obj,condition):
-                return False
-
-        obj.roles = {}
+        # Try to fill roles
         taken_characters = list()
         for role in self.roles:
             # Pick a random character in the cast until we find someone to fill the role
@@ -71,24 +67,36 @@ class SelmaEventCard:
 
             characters_to_try = list(obj.cast)
             for taken_character in taken_characters:
-                characters_to_try.remove(taken_character)
+                if taken_character in characters_to_try:
+                    characters_to_try.remove(taken_character)
 
             while len(characters_to_try) > 0 and not role in obj.roles:
-                candidate = characters_to_try[random.randint(0,len(characters_to_try)-1)]
+                candidate = random_item_from_list(characters_to_try)
 
                 if not len(conditions):
                     obj.roles[role] = obj.cast[candidate]
                     taken_characters.append(candidate)
 
+                passed_all_tests = True
                 for condition in conditions:
-                    if selma_parser.evaluate_condition(obj.cast[candidate],condition):
-                        obj.roles[role] = obj.cast[candidate]
-                        taken_characters.append(candidate)
-                    else:
+                    if not selma_parser.evaluate_condition(obj.cast[candidate],condition):
+                        print (characters_to_try, candidate)
+                        passed_all_tests = False
                         characters_to_try.remove(candidate)
+                        break
 
-            if not role in obj.roles and obj.debug_mode:
+                if passed_all_tests:
+                    obj.roles[role] = obj.cast[candidate]
+                    taken_characters.append(candidate)
+
+            if not role in obj.roles:
                 return False
+
+        # Test every condition
+        for condition in self.conditions:
+            if not selma_parser.evaluate_condition(obj,condition):
+                return False
+
         return True
 
     def __str__(self):
@@ -127,6 +135,7 @@ class SelmaStorySimulation:
         self.var = {}
 
         self.cast = {}
+        self.roles = {}
 
         self.debug_mode = debug_mode
         self.allow_output = allow_output
@@ -168,6 +177,7 @@ class SelmaStorySimulation:
 
         self.cast[name] = SelmaCharacter()
         self.cast[name].name = name
+        self.cast[name].world = self
         self.cast[name].attributes = attributes.copy()
         self.cast[name].inventory = inventory.copy()
 
@@ -232,7 +242,10 @@ class SelmaStorySimulation:
             print("Cast: %s" % self.cast)
             print("Draw deck: %s\n" % self.draw_deck)
 
-        self.log.append(picked_card.text_out)
+        roles_list = ""
+        for r in self.roles:
+            roles_list += "[%s:%s]" % (r, self.roles[r].name)
+        self.log.append(roles_list + picked_card.text_out)
         self.steps_count += 1
 
     'Adds the card named "card_name" to the deck of possible cards'

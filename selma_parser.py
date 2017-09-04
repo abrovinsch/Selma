@@ -13,6 +13,7 @@ op = {
 
     "set-value":"=",
     "value-equals":"=",
+    "value-not-equals":"!=",
     "add-numeric":"+=",
     "subtract-numeric":"-=",
     "multiply-numeric":"*=",
@@ -30,7 +31,8 @@ op = {
 
     "define-numeric-variable":"create-num",
     "define-string-variable":"create-string",
-    "define-list-variable":"create-list"
+    "define-list-variable":"create-list",
+    "define-variable-on-all":"create-on-everyone"
 }
 
 error_no_such_variable = "There is no variable named '%s' on object %s"
@@ -108,22 +110,54 @@ def execute_effect(obj,line):
     elif operator == op["define-string-variable"]:
         add_variable_to_dict(var_holder[var_name],var_name,value,"")
 
+    elif operator == op["define-variable-on-all"]:
+
+        if var_type == "list":
+            for item in var_holder[var_name]:
+                if("var" in item.__dict__):
+                    item.var[value] = 0
+                else:
+                    raise SelmaParseException("Cannot create variables on %s becuase it's members has no variable field" % var_holder[var_name])
+                    return
+        elif var_type == "dict":
+            for item_name in var_holder[var_name]:
+                item = var_holder[var_name][item_name]
+                if("var" in item.__dict__):
+                    item.var[value] = 0
+                else:
+                    raise SelmaParseException("Cannot create variables on %s becuase it's members has no variable field" % var_holder[var_name])
+                    return
+        else:
+            raise parse_error_wrong_type(operator,var_type,var_name)
     else:
         raise SelmaParseException("Unknown operator '%s'" % operator)
 
 "Return true if the statement in 'line' is true on object 'obj'"
 def evaluate_condition(obj,line):
 
+
     var_name, parent_object, operator, value, var_type, value_type = parse_line_to_parts(obj,line)
     var_holder = get_var_holder(parent_object)
 
     if operator == op["value-equals"]:
+        if not var_name in var_holder:
+            return False
         if value_type == "int" or value_type == "float":
             return var_holder[var_name] == parse_as_number(operator,value)
         elif var_type == "list":
             return var_holder[var_name] == parse_as_list(value)
         else:
             return var_holder[var_name] == value
+
+    if operator == op["value-not-equals"]:
+        if not var_name in var_holder:
+            return True
+        if value_type == "int" or value_type == "float":
+            return var_holder[var_name] != parse_as_number(operator,value)
+        elif var_type == "list":
+            return var_holder[var_name] != parse_as_list(value)
+        else:
+            return var_holder[var_name] != value
 
     elif operator == op["greater-than"]:
         return var_holder[var_name] > parse_as_number(operator,value)
@@ -185,7 +219,7 @@ def parse_line_to_parts(calling_object,line):
     var_holder = get_var_holder(parent_object)
 
     if not var_name in var_holder:
-            raise SelmaParseException(error_no_such_variable % (var_name, var_holder.__class__.__name__))
+        raise SelmaParseException(error_no_such_variable % (var_name, var_holder.__class__.__name__))
 
     var_type = var_holder[var_name].__class__.__name__
 
@@ -213,6 +247,7 @@ def get_variable_reference(parent_object, string):
 
         else:
             t = parent_object.__class__.__name__
+            print(string, t)
             raise SelmaParseException(error_no_such_variable % (var_name, var_holder.__class__.__name__))
 
         rest_string   = string[string.index(".")+1:]

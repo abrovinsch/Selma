@@ -3,13 +3,39 @@
 
 class SelmaOperation:
 
-    def __init__(self,var_name, var_holder, operator, value, var_type, value_type):
-        self.var_name = var_name
-        self.operator = operator
-        self.value = value
-        self.var_type = var_type
-        self.value_type = value_type
-        self.var_holder = var_holder
+    "Initializes a new SelmaOperation object by parsing a line and grabbing references from the parent object"
+    def __init__(self,calling_object,line):
+        line = line.strip()
+
+        match_object = re.match(r'(\S+)\s+(\S+)\s+(.*)',line,flags=0)
+
+        if not match_object:
+            raise SelmaParseException("invalid syntax '%s'" % line)
+        matches = match_object.groups()
+
+        parent_object, self.var_name = get_variable_reference(calling_object,matches[0])
+
+        self.operator = matches[1]
+
+        if not self.operator in operator.values():
+            raise SelmaParseException("Unknown operator '%s' in line '%s'" % (self.operator, line))
+
+        self.value = matches[2]
+
+        self.value_type = get_type_from_literal(self.value)
+
+        if self.value_type == "reference":
+            self.value = get_value_from_reference(calling_object,self.value)
+            self.value_type = self.value.__class__.__name__
+        elif self.value_type == "str":
+            self.value = self.value[1:-1]
+
+        self.var_holder = get_var_holder(parent_object)
+
+        if not self.var_name in self.var_holder:
+            raise SelmaParseException(error_no_such_variable % (self.var_name, self.var_holder.__class__.__name__))
+
+        self.var_type = self.var_holder[self.var_name].__class__.__name__
 
     def get_var_value(self,):
         return self.var_holder[self.var_name]
@@ -25,6 +51,7 @@ class SelmaOperation:
 
     def add(self,val):
         self.var_holder[self.var_name] += val
+
 
 import ast, re
 
@@ -66,7 +93,7 @@ allow_print_out = True
 "Execute the effect in 'line' on the object 'obj'"
 def execute_effect(obj,line):
 
-    op = parse_line_to_parts(obj,line)
+    op = SelmaOperation(obj,line)
 
     if op.operator == operator["set-value"]:
         if op.value_type == "float" or op.value_type == "int":
@@ -158,7 +185,7 @@ def execute_effect(obj,line):
 "Return true if the statement in 'line' is true on object 'obj'"
 def evaluate_condition(obj,line):
 
-    op = parse_line_to_parts(obj,line)
+    op = SelmaOperation(obj,line)
 
     if op.operator == operator["value-equals"]:
         if not op.var_name in op.var_holder:
@@ -210,41 +237,6 @@ def evaluate_condition(obj,line):
     else:
         raise SelmaParseException("Unknown operator '%s'" % op.operator)
 
-"Returns all the parts of a line: var_name, parent_object, operator, value, var_type, value_type"
-def parse_line_to_parts(calling_object,line):
-    line = line.strip()
-
-    match_object = re.match(r'(\S+)\s+(\S+)\s+(.*)',line,flags=0)
-
-    if not match_object:
-        raise SelmaParseException("invalid syntax '%s'" % line)
-    matches = match_object.groups()
-
-    parent_object, var_name = get_variable_reference(calling_object,matches[0])
-
-    operator_string = matches[1]
-
-    if not operator_string in operator.values():
-        raise SelmaParseException("Unknown operator '%s' in line '%s'" % (operator_string, line))
-
-    value    = matches[2]
-
-    value_type = get_type_from_literal(value)
-
-    if value_type == "reference":
-        value = get_value_from_reference(calling_object,value)
-        value_type = value.__class__.__name__
-    elif value_type == "str":
-        value = value[1:-1]
-
-    var_holder = get_var_holder(parent_object)
-
-    if not var_name in var_holder:
-        raise SelmaParseException(error_no_such_variable % (var_name, var_holder.__class__.__name__))
-
-    var_type = var_holder[var_name].__class__.__name__
-
-    return SelmaOperation(var_name, var_holder, operator_string, value, var_type, value_type)
 
 "Returns a reference to the variable which a string is refering to"
 def get_variable_reference(parent_object, string):

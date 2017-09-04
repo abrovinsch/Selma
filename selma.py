@@ -258,6 +258,9 @@ class SelmaStorySimulation:
     def execute_effect(self,effect):
         selma_parser.execute_effect(self,effect)
 
+    def evaluate_condition(self,condition):
+        return selma_parser.evaluate_condition(self,condition)
+
 'Returns a random item from any list'
 def random_item_from_list(l):
     if len(l) == 0:

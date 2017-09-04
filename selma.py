@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python
 
-from collections import defaultdict
 import random, selma_parser, selma_file_reader
 
 class SelmaCharacter:
@@ -80,7 +79,6 @@ class SelmaEventCard:
                 passed_all_tests = True
                 for condition in conditions:
                     if not selma_parser.evaluate_condition(obj.cast[candidate],condition):
-                        print (characters_to_try, candidate)
                         passed_all_tests = False
                         characters_to_try.remove(candidate)
                         break
@@ -245,6 +243,7 @@ class SelmaStorySimulation:
         roles_list = ""
         for r in self.roles:
             roles_list += "[%s:%s]" % (r, self.roles[r].name)
+
         self.log.append(roles_list + picked_card.text_out)
         self.steps_count += 1
 
@@ -262,7 +261,7 @@ class SelmaStorySimulation:
 'Returns a random item from any list'
 def random_item_from_list(l):
     if len(l) == 0:
-        raise SelmaException("Can't grab ranom item from an empty list!")
+        raise SelmaException("Can't grab random item from an empty list!")
     index = random.randint(0,len(l)-1)
     return l[index]
 

@@ -1,11 +1,35 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python
 
+class SelmaOperation:
+
+    def __init__(self,var_name, var_holder, operator, value, var_type, value_type):
+        self.var_name = var_name
+        self.operator = operator
+        self.value = value
+        self.var_type = var_type
+        self.value_type = value_type
+        self.var_holder = var_holder
+
+    def get_var_value(self,):
+        return self.var_holder[self.var_name]
+
+    def set_var_to(self,val):
+        self.var_holder[self.var_name] = val
+
+    def append(self,val):
+        self.var_holder[self.var_name].append(val)
+
+    def remove(self,val):
+        self.var_holder[self.var_name].remove(val)
+
+    def add(self,val):
+        self.var_holder[self.var_name] += val
+
 import ast, re
 
-
 "This defines every operator"
-op = {
+operator = {
     "append":"add",
     "append-list":"add-these",
     "remove-from-list":"remove",
@@ -42,152 +66,149 @@ allow_print_out = True
 "Execute the effect in 'line' on the object 'obj'"
 def execute_effect(obj,line):
 
-    var_name, parent_object, operator, value, var_type, value_type = parse_line_to_parts(obj,line)
-    var_holder = get_var_holder(parent_object)
+    op = parse_line_to_parts(obj,line)
 
-    if operator == op["set-value"]:
-        if value_type == "float" or value_type == "int":
-            var_holder[var_name] = parse_as_number(operator,value)
-        elif var_type == "list" and value_type == "string":
-            var_holder[var_name] = parse_as_list(value)
+    if op.operator == operator["set-value"]:
+        if op.value_type == "float" or op.value_type == "int":
+            op.set_var_to(parse_as_number(op.operator,op.value))
+        elif op.var_type == "list" and op.value_type == "string":
+            op.set_var_to(parse_as_list(op.value))
         else:
-            var_holder[var_name] = value
+            op.set_var_to(op.value)
 
-    elif operator == op["append"]:
-        if var_type == "list":
-            var_holder[var_name].append(value)
+    elif op.operator == operator["append"]:
+        if op.var_type == "list":
+            op.append(op.value)
         else:
-            raise parse_error_wrong_type(operator,var_holder[var_name].__class__.__name__,var_name)
+            raise parse_error_wrong_type(op.operator,op.var_holder[op.var_name].__class__.__name__,op.var_name)
 
-    elif operator == op["append-list"]:
-        if var_type == "list":
-            list_to_append = parse_as_list(value)
+    elif op.operator == operator["append-list"]:
+        if op.var_type == "list":
+            list_to_append = parse_as_list(op.value)
             for item in list_to_append:
-                var_holder[var_name].append(item)
+                op.append(item)
         else:
-            raise parse_error_wrong_type(operator,value,var_name)
+            raise parse_error_wrong_type(op.operator,op.value,op.var_name)
 
-    elif operator == op["remove-from-list"]:
-        if var_type == "list":
-            if value in var_holder[var_name]:
-                var_holder[var_name].remove(value)
+    elif op.operator == operator["remove-from-list"]:
+        if op.var_type == "list":
+            if op.value in op.get_var_value():
+                op.remove(value)
         else:
-            raise parse_error_wrong_type(operator,value,var_name)
+            raise parse_error_wrong_type(op.operator,op.value,op.var_name)
 
-    elif operator == op["remove-from-list-many"]:
-        if var_type == "list":
-            list_to_remove = parse_as_list(value)
+    elif op.operator == operator["remove-from-list-many"]:
+        if op.var_type == "list":
+            list_to_remove = parse_as_list(op.value)
             for item in list_to_remove:
-                if item in var_holder[var_name]:
-                    var_holder[var_name].remove(item)
+                if item in op.get_var_value():
+                    op.remove(item)
         else:
-            raise parse_error_wrong_type(operator,value,var_name)
+            raise parse_error_wrong_type(op.operator,op.value,op.var_name)
 
-    elif operator == op["add-numeric"]:
-        var_holder[var_name] += parse_as_number(operator,value)
+    elif op.operator == operator["add-numeric"]:
+        op.add(parse_as_number(operator,value))
 
-    elif operator == op["subtract-numeric"]:
-        var_holder[var_name] -= parse_as_number(operator,value)
+    elif op.operator == operator["subtract-numeric"]:
+        op.var_holder[var_name] -= parse_as_number(op.operator,op.value)
 
-    elif operator == op["divide-numeric"]:
-        var_holder[var_name] /= parse_as_number(operator,value)
+    elif operator == operator["divide-numeric"]:
+        op.var_holder[var_name] /= parse_as_number(op.operator,op.value)
 
-    elif operator == op["multiply-numeric"]:
-        var_holder[var_name] *= parse_as_number(operator,value)
+    elif operator == operator["multiply-numeric"]:
+        op.var_holder[var_name] *= parse_as_number(op.operator,op.value)
 
-    elif operator == op["print-value"]:
-        if value == "":
+    elif op.operator == operator["print-value"]:
+        if op.value == "":
             value = "$"
         if(allow_print_out):
-            print(value.replace("$",str(var_holder[var_name])))
+            print(op.value.replace("$",str(op.get_var_value())))
 
-    elif operator == op["define-numeric-variable"]:
-        add_variable_to_dict(var_holder[var_name],var_name,value,0)
+    elif op.operator == operator["define-numeric-variable"]:
+        add_variable_to_dict(op.var_holder[op.var_name],op.var_name,op.value,0)
 
-    elif operator == op["define-list-variable"]:
-        add_variable_to_dict(var_holder[var_name],var_name,value,list())
+    elif op.operator == operator["define-list-variable"]:
+        add_variable_to_dict(op.var_holder[op.var_name],op.var_name,op.value,list())
 
-    elif operator == op["define-string-variable"]:
+    elif operator == operator["define-string-variable"]:
         add_variable_to_dict(var_holder[var_name],var_name,value,"")
 
-    elif operator == op["define-variable-on-all"]:
+    elif op.operator == operator["define-variable-on-all"]:
 
-        if var_type == "list":
-            for item in var_holder[var_name]:
+        if op.var_type == "list":
+            for item in op.get_var_value():
                 if("var" in item.__dict__):
-                    item.var[value] = 0
+                    item.var[op.value] = 0
                 else:
-                    raise SelmaParseException("Cannot create variables on %s becuase it's members has no variable field" % var_holder[var_name])
+                    raise SelmaParseException("Cannot create variables on %s becuase it's members has no variable field" % op.var_holder[op.var_name])
                     return
-        elif var_type == "dict":
-            for item_name in var_holder[var_name]:
-                item = var_holder[var_name][item_name]
+        elif op.var_type == "dict":
+            for item_name in op.var_holder[op.var_name]:
+                item = op.var_holder[op.var_name][item_name]
                 if("var" in item.__dict__):
-                    item.var[value] = 0
+                    item.var[op.value] = 0
                 else:
-                    raise SelmaParseException("Cannot create variables on %s becuase it's members has no variable field" % var_holder[var_name])
+                    raise SelmaParseException("Cannot create variables on %s becuase it's members has no variable field" % op.var_holder[op.var_name])
                     return
         else:
-            raise parse_error_wrong_type(operator,var_type,var_name)
+            raise parse_error_wrong_type(op.operator,var_type,var_name)
     else:
-        raise SelmaParseException("Unknown operator '%s'" % operator)
+        raise SelmaParseException("Unknown operator '%s'" % op.operator)
 
 "Return true if the statement in 'line' is true on object 'obj'"
 def evaluate_condition(obj,line):
 
+    op = parse_line_to_parts(obj,line)
 
-    var_name, parent_object, operator, value, var_type, value_type = parse_line_to_parts(obj,line)
-    var_holder = get_var_holder(parent_object)
-
-    if operator == op["value-equals"]:
-        if not var_name in var_holder:
+    if op.operator == operator["value-equals"]:
+        if not op.var_name in op.var_holder:
             return False
-        if value_type == "int" or value_type == "float":
-            return var_holder[var_name] == parse_as_number(operator,value)
-        elif var_type == "list":
-            return var_holder[var_name] == parse_as_list(value)
+        if op.value_type == "int" or op.value_type == "float":
+            return op.var_holder[op.var_name] == parse_as_number(op.operator,op.value)
+        elif op.var_type == "list":
+            return op.var_holder[op.var_name] == parse_as_list(op.value)
         else:
-            return var_holder[var_name] == value
+            return op.var_holder[op.var_name] == op.value
 
-    if operator == op["value-not-equals"]:
-        if not var_name in var_holder:
+    if op.operator == operator["value-not-equals"]:
+        if not op.var_name in op.var_holder:
             return True
-        if value_type == "int" or value_type == "float":
-            return var_holder[var_name] != parse_as_number(operator,value)
-        elif var_type == "list":
-            return var_holder[var_name] != parse_as_list(value)
+        if op.value_type == "int" or op.value_type == "float":
+            return op.var_holder[op.var_name] != parse_as_number(op.operator,op.value)
+        elif op.var_type == "list":
+            return op.var_holder[op.var_name] != parse_as_list(op.value)
         else:
-            return var_holder[var_name] != value
+            return op.var_holder[op.var_name] != op.value
 
-    elif operator == op["greater-than"]:
+    elif op.operator == operator["greater-than"]:
         return var_holder[var_name] > parse_as_number(operator,value)
 
-    elif operator == op["lesser-than"]:
-        return var_holder[var_name] < parse_as_number(operator,value)
+    elif op.operator == operator["lesser-than"]:
+        return op.var_holder[op.var_name] < parse_as_number(op.operator,op.value)
 
-    elif operator == op["greater-than-or-equal"]:
-        if var_type == "int" or var_type == "float":
-            return var_holder[var_name] >= parse_as_number(operator,value)
+    elif op.operator == operator["greater-than-or-equal"]:
+        if op.var_type == "int" or op.var_type == "float":
+            return op.var_holder[op.var_name] >= parse_as_number(op.operator,op.value)
         else:
-            parse_error_wrong_type(operator,value,var_name)
+            parse_error_wrong_type(op.operator,op.value,op.var_name)
 
-    elif operator == op["greater-than-or-equal"]:
-        return var_holder[var_name] <= parse_as_number(operator,value)
+    elif op.operator == operator["greater-than-or-equal"]:
+        return op.var_holder[op.var_name] <= parse_as_number(op.operator,op.value)
 
-    elif operator == op["list-doesnt-contain"]:
+    elif op.operator == operator["list-doesnt-contain"]:
+        if op.var_type == "list":
+            return not op.value in op.var_holder[op.var_name]
+        else:
+            parse_error_wrong_type(op.operator,op.value,op.var_name)
+
+    elif op.operator == operator["list-contains"]:
         if var_type == "list":
-            return not value in var_holder[var_name]
+            return op.value in op.var_holder[op.var_name]
         else:
-            parse_error_wrong_type(operator,value,var_name)
-
-    elif operator == op["list-contains"]:
-        if var_type == "list":
-            return value in var_holder[var_name]
-        else:
-            parse_error_wrong_type(operator,value,var_name)
+            parse_error_wrong_type(op.operator,op.value,op.var_name)
 
     else:
-        raise SelmaParseException("Unknown operator '%s'" % operator)
+        raise SelmaParseException("Unknown operator '%s'" % op.operator)
 
 "Returns all the parts of a line: var_name, parent_object, operator, value, var_type, value_type"
 def parse_line_to_parts(calling_object,line):
@@ -201,10 +222,10 @@ def parse_line_to_parts(calling_object,line):
 
     parent_object, var_name = get_variable_reference(calling_object,matches[0])
 
-    operator = matches[1]
+    operator_string = matches[1]
 
-    if not operator in op.values():
-        raise SelmaParseException("Unknown operator '%s' in line '%s'" % (operator, line))
+    if not operator_string in operator.values():
+        raise SelmaParseException("Unknown operator '%s' in line '%s'" % (operator_string, line))
 
     value    = matches[2]
 
@@ -223,7 +244,7 @@ def parse_line_to_parts(calling_object,line):
 
     var_type = var_holder[var_name].__class__.__name__
 
-    return var_name, parent_object, operator, value, var_type, value_type
+    return SelmaOperation(var_name, var_holder, operator_string, value, var_type, value_type)
 
 "Returns a reference to the variable which a string is refering to"
 def get_variable_reference(parent_object, string):

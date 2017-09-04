@@ -32,7 +32,10 @@ operator = {
     "define-numeric-variable":"create-num",
     "define-string-variable":"create-string",
     "define-list-variable":"create-list",
-    "define-variable-on-all":"create-on-everyone"
+
+    "define-number-on-all":"create-num-all",
+    "define-string-on-all":"create-string-all",
+    "define-list-on-all":"create-list-all"
 }
 
 error_no_such_variable = "There is no variable named '%s' on object %s"
@@ -190,12 +193,19 @@ def execute_effect(obj,line):
                             op.argument,
                             "")
 
-    elif op.operator == operator["define-variable-on-all"]:
+    elif op.operator == operator["define-number-on-all"] or op.operator == operator["define-string-on-all"] or op.operator == operator["define-list-on-all"]:
+
+        if op.operator == operator["define-string-on-all"]:
+            default_value = ""
+        elif op.operator == operator["define-list-on-all"]:
+            default_value = list()
+        else:
+            default_value = 0
 
         if op.var_type == "list":
             for item in op.get_var_value():
                 if("var" in item.__dict__):
-                    item.var[op.argument] = 0
+                    item.var[op.argument] = default_value
                 else:
                     raise SelmaParseException("Cannot create variables on %s becuase it's members has no variable field" % op.get_var_value())
                     return
@@ -203,7 +213,7 @@ def execute_effect(obj,line):
             for item_name in op.get_var_value():
                 item = op.get_var_value()[item_name]
                 if("var" in item.__dict__):
-                    item.var[op.argument] = 0
+                    item.var[op.argument] = default_value
                 else:
                     raise SelmaParseException("Cannot create variables on %s becuase it's members has no variable field" % op.get_var_value())
                     return

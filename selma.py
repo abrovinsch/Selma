@@ -237,7 +237,7 @@ class SelmaStorySimulation:
         if(self.debug_mode):
             print ("Picked card: '%s'" % picked_card.name)
             print("Attributes: %s" % self.attributes)
-            print("Cast: %s" % self.cast)
+            print("Cast: %s" % list(self.cast.keys()))
             print("Draw deck: %s\n" % self.draw_deck)
 
         roles_list = ""

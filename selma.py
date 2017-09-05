@@ -12,6 +12,7 @@ class SelmaCharacter:
         self.personality = list()
         self.inventory = list()
         self.mood = "neutral"
+        self.job = ""
         self.happiness = 0
         self.var = {}
         self.world = 0
@@ -53,7 +54,7 @@ class SelmaEventCard:
                 self.roles[role_name] = role_conditions
 
     'Returns true if all the condtions on this card are met'
-    def fullfill_conditions(self,obj,_attributes):
+    def fullfill_conditions(self,obj,_attributes,card_name):
         obj.roles = {}
 
         if not len(self.conditions) and not len(self.roles) :
@@ -79,7 +80,13 @@ class SelmaEventCard:
 
                 passed_all_tests = True
                 for condition in conditions:
-                    if not selma_parser.evaluate_condition(obj.cast[candidate],condition):
+                    try:
+                        evaluation_result = selma_parser.evaluate_condition(obj.cast[candidate],condition)
+                    except Exception as e:
+                        print ("Error while testing condition '%s' on card '%s'" % (condition, card_name))
+                        raise selma_parser.SelmaParseException(e)
+
+                    if not evaluation_result:
                         passed_all_tests = False
                         characters_to_try.remove(candidate)
                         break
@@ -182,7 +189,10 @@ class SelmaStorySimulation:
 
         # Execute the init "script" to set variables etc.
         for fx in init_effects:
-            selma_parser.execute_effect(self.cast[name],fx)
+            try:
+                selma_parser.execute_effect(self.cast[name],fx)
+            except Exception as e:
+                raise selma_parser.SelmaParseException(e)
 
         # Recreate the character list
         self.all_character_names = list(self.cast.keys())
@@ -199,7 +209,11 @@ class SelmaStorySimulation:
         if self.steps_count == 0 and start_card_name in self.all_card_names:
             # Execute the effects of the start card
             for fx in self.event_cards[start_card_name].effects:
-                selma_parser.execute_effect(self,fx)
+                try:
+                    selma_parser.execute_effect(self,fx)
+                except Exception as e:
+                    print ("Error in start card")
+                    raise selma_parser.SelmaParseException(e)
 
             # Add the start cards "next"s to the draw deck
             for card_name in self.event_cards[start_card_name].next_cards:
@@ -224,7 +238,7 @@ class SelmaStorySimulation:
             if picked_card.name in self.draw_deck:
                 self.draw_deck.remove(picked_card_string)
 
-            if picked_card.fullfill_conditions(self,self.attributes):
+            if picked_card.fullfill_conditions(self,self.attributes,picked_card.name):
                 have_found_card = True
 
         #Add the next cards to the draw deck
@@ -232,8 +246,14 @@ class SelmaStorySimulation:
             self.add_card_to_draw_deck(card_name)
 
         #Execute the effects of the card
+
         for fx in picked_card.effects:
-            selma_parser.execute_effect(self,fx)
+            try:
+                selma_parser.execute_effect(self,fx)
+            except Exception as e:
+                print ("Error while executing effect '%s' on card '%s'" % (fx, picked_card_string))
+                raise selma_parser.SelmaParseException(e)
+
 
         if(self.debug_mode):
             print ("Picked card: '%s'" % picked_card.name)
@@ -241,11 +261,14 @@ class SelmaStorySimulation:
             print("Cast: %s" % list(self.cast.keys()))
             print("Draw deck: %s\n" % self.draw_deck)
 
-        roles_list = ""
-        for r in self.roles:
-            roles_list += "[%s:%s]" % (r, self.roles[r].name)
 
-        self.log.append(roles_list + picked_card.text_out)
+        event = SelmaEvent(picked_card_string)
+        if len(self.roles) > 0:
+            event.subject = self.roles[list(self.roles.keys())[0]].name
+        if len(self.roles) > 1:
+            event.object =  self.roles[list(self.roles.keys())[1]].name
+
+        self.log.append(event)
         self.steps_count += 1
 
     'Adds the card named "card_name" to the deck of possible cards'
@@ -271,3 +294,22 @@ def random_item_from_list(l):
 
 class SelmaException (Exception):
     pass
+
+class SelmaEvent:
+
+    def __init__(self, event_name,subject=0,object=0,previous_event=0):
+        self.event_name = event_name
+        self.subject = subject
+        self.object = object
+        self.previous_event = previous_event
+
+    def __str__(self):
+        wrapper = "EVENT '%s'"
+        if self.subject and self.object:
+            name = "%s %s to %s" % (self.subject, self.event_name, self.object)
+            return wrapper % name
+        elif self.subject:
+            name = "%s %s" % (self.subject, self.event_name)
+            return wrapper % name
+        else:
+            return wrapper % self.event_name

@@ -91,9 +91,6 @@ def parse_text_to_card_contents(name, card_text,literal_dictionary):
     for card in next_cards:
         cleaned_next_cards.append(card[1:-1])
 
-    if len(cleaned_next_cards) == 0:
-        cleaned_next_cards.append("#")
-
     return name, conditions, effects, cleaned_next_cards, roles
 
 "Parses a string for a event card"

@@ -147,7 +147,7 @@ class SelmaStorySimulation:
         self.allow_output = allow_output
         selma_parser.allow_print_out = allow_output
 
-        self.log = list()
+        self.past_events = list()
         self.steps_count = 0
 
         if(self.allow_output):
@@ -268,7 +268,7 @@ class SelmaStorySimulation:
         if len(self.roles) > 1:
             event.object =  self.roles[list(self.roles.keys())[1]].name
 
-        self.log.append(event)
+        self.past_events.append(event)
         self.steps_count += 1
 
     'Adds the card named "card_name" to the deck of possible cards'

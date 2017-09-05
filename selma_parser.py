@@ -9,11 +9,11 @@ operator = {
     "remove-from-list":"remove",
     "remove-from-list-many":"remove-these",
 
-    "set-value":"=",
+    "assign-value":"=",
     "value-equals":"=",
 
     "add-to":"+=",
-    "subtract-from":"-=",
+        "subtract-from":"-=",
 
     "multiply-numeric":"*=",
     "divide-numeric":"/=",
@@ -109,10 +109,10 @@ def execute_effect(obj,line):
 
     op = SelmaOperation(obj,line)
 
-    if op.operator == operator["set-value"]:
+    if op.operator == operator["assign-value"]:
         if op.argument_type == "float" or op.argument_type == "int":
             op.set_var_to(parse_as_number(op.operator,op.argument))
-        elif op.var_type == "list" and op.argument_type == "string":
+        elif op.var_type == "list" and op.argument_type == "literal-list":
             op.set_var_to(parse_as_list(op.argument))
         else:
             op.set_var_to(op.argument)

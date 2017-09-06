@@ -55,30 +55,33 @@ class SelmaEventCard:
 
     'Returns true if all the condtions on this card are met'
     def fullfill_conditions(self,obj,_attributes,card_name):
-        obj.roles = {}
+
 
         if not len(self.conditions) and not len(self.roles) :
             return True
 
-        # Try to fill roles
+        # Pick a random character in the cast until we find someone to fill the role
         taken_characters = list()
-        for role in self.roles:
-            # Pick a random character in the cast until we find someone to fill the role
-            conditions = self.roles[role]
 
+        for role in self.roles:
+
+            conditions = self.roles[role]
             characters_to_try = list(obj.cast)
+
+            # We don't test any characters that has already gotten a role
             for taken_character in taken_characters:
                 if taken_character in characters_to_try:
                     characters_to_try.remove(taken_character)
 
+            # Loop until we find someone to fill the role or we run out of
+            # characters to try for it
             while len(characters_to_try) > 0 and not role in obj.roles:
+
+                # This is done because it is very important
+                # that the characters are tested in random order!
                 candidate = random_item_from_list(characters_to_try)
 
-                if not len(conditions):
-                    obj.roles[role] = obj.cast[candidate]
-                    taken_characters.append(candidate)
-
-                passed_all_tests = True
+                passes_all_conditions = True
                 for condition in conditions:
                     try:
                         evaluation_result = selma_parser.evaluate_condition(obj.cast[candidate],condition)
@@ -86,19 +89,23 @@ class SelmaEventCard:
                         print ("Error while testing condition '%s' on card '%s'" % (condition, card_name))
                         raise selma_parser.SelmaParseException(e)
 
+                    # If this guy doesn't cut it, ignore him and try the next one
                     if not evaluation_result:
-                        passed_all_tests = False
+                        passes_all_conditions = False
                         characters_to_try.remove(candidate)
                         break
 
-                if passed_all_tests:
+                # This person gets the role
+                if passes_all_conditions:
                     obj.roles[role] = obj.cast[candidate]
                     taken_characters.append(candidate)
 
+            # No one could fill the role, so return False
             if not role in obj.roles:
+                obj.roles = {}
                 return False
 
-        # Test every condition
+        # Test every condition on the card itself
         for condition in self.conditions:
             if not selma_parser.evaluate_condition(obj,condition):
                 return False
@@ -155,8 +162,10 @@ class SelmaStorySimulation:
 
     "Loads cards and characters into this simulation from a .selma file"
     def load_from_file(self, path):
+
         if self.allow_output:
             print("<-Load file '%s'->\n" % path)
+
         selma_file_reader.load_selma_file(self,path)
 
         if self.allow_output:
@@ -169,12 +178,15 @@ class SelmaStorySimulation:
         if self.debug_mode:
             print("Add card '%s' to deck" % name)
 
+        # Add as many copies of the card as defined
         for i in range(0,amount):
             self.event_cards[name] = SelmaEventCard(name,conditions,effects,next_cards,roles)
 
+        # Reset the list of all card names
         self.all_card_names = list()
         for card_name in self.event_cards.keys():
-            self.all_card_names.append(card_name)
+            for i in range(0,amount):
+                self.all_card_names.append(card_name)
 
     'Adds a character to the cast'
     def add_character_to_cast(self,name, init_effects, attributes, inventory):
@@ -246,7 +258,6 @@ class SelmaStorySimulation:
             self.add_card_to_draw_deck(card_name)
 
         #Execute the effects of the card
-
         for fx in picked_card.effects:
             try:
                 selma_parser.execute_effect(self,fx)
@@ -256,7 +267,7 @@ class SelmaStorySimulation:
 
 
         if(self.debug_mode):
-            print ("Picked card: '%s'" % picked_card.name)
+            print("Picked card: '%s'" % picked_card.name)
             print("Attributes: %s" % self.attributes)
             print("Cast: %s" % list(self.cast.keys()))
             print("Draw deck: %s\n" % self.draw_deck)
@@ -279,9 +290,11 @@ class SelmaStorySimulation:
         else:
             raise SelmaException("Cannot add card name '%s'(on card '%s'.next) to the draw deck because there is no card with that name" % (card_name, picked_card_string))
 
+    'Execute an effect on this scope'
     def execute_effect(self,effect):
         selma_parser.execute_effect(self,effect)
 
+    'Evaluates a condition on this scope'
     def evaluate_condition(self,condition):
         return selma_parser.evaluate_condition(self,condition)
 
@@ -295,9 +308,10 @@ def random_item_from_list(l):
 class SelmaException (Exception):
     pass
 
+'This class contains information about an event which has occured'
 class SelmaEvent:
 
-    def __init__(self, event_name,subject=0,object=0,previous_event=0):
+    def __init__(self, event_name, subject=0, object=0, previous_event=0):
         self.event_name = event_name
         self.subject = subject
         self.object = object

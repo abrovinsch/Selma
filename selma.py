@@ -37,7 +37,12 @@ class SelmaCharacter:
 class SelmaEventCard:
 
     'At initialization, copy all of the supplied variables'
-    def __init__(self,name="unnamed event card",conditions=list(),effects=list(),next_cards=list(),roles=list()):
+    def __init__(self,
+                name="unnamed event card",
+                conditions=list(),
+                effects=list(),
+                next_cards=list(),
+                roles=list()):
 
         self.name = name
 
@@ -62,7 +67,8 @@ class SelmaEventCard:
         if not len(self.conditions) and not len(self.roles) :
             return True
 
-        # Pick a random character in the cast until we find someone to fill the role
+        # Pick a random character in the cast until
+        # we find someone to fill the role
         taken_characters = list()
 
         for role in self.roles:
@@ -86,9 +92,12 @@ class SelmaEventCard:
                 passes_all_conditions = True
                 for condition in conditions:
                     try:
-                        evaluation_result = selma_parser.evaluate_condition(obj.cast[candidate],condition)
+                        evaluation_result = selma_parser.evaluate_condition(
+                                                obj.cast[candidate],
+                                                condition)
                     except Exception as e:
-                        print ("Error while testing condition '%s' on card '%s'" % (condition, card_name))
+                        print ("Error while testing condition '%s' on card '%s'"
+                                % (condition, card_name))
                         raise selma_parser.SelmaParseException(e)
 
                     # If this guy doesn't cut it, ignore him and try the next one
@@ -175,14 +184,24 @@ class SelmaStorySimulation:
 
     'This function makes a copy of the supplied'
     'card and add n instances of it to the deck'
-    def add_to_deck(self,name="unnamed card",effects=list(),conditions=list(),next_cards=list(),roles=list(),amount=1):
+    def add_to_deck(self,
+                    name="unnamed card",
+                    effects=list(),
+                    conditions=list(),
+                    next_cards=list(),
+                    roles=list(),
+                    amount=1):
 
         if self.debug_mode:
             print("Add card '%s' to deck" % name)
 
         # Add as many copies of the card as defined
         for i in range(0,amount):
-            self.event_cards[name] = SelmaEventCard(name,conditions,effects,next_cards,roles)
+            self.event_cards[name] = SelmaEventCard(name,
+                                                    conditions,
+                                                    effects,
+                                                    next_cards,
+                                                    roles)
 
         # Reset the list of all card names
         self.all_card_names = list()
@@ -191,7 +210,11 @@ class SelmaStorySimulation:
                 self.all_card_names.append(card_name)
 
     'Adds a character to the cast'
-    def add_character_to_cast(self,name, init_effects, attributes, inventory):
+    def add_character_to_cast(self,
+                             name,
+                             init_effects,
+                             attributes,
+                             inventory):
         if self.debug_mode:
             print("Add character '%s' to cast" % name)
 
@@ -218,7 +241,8 @@ class SelmaStorySimulation:
 
         have_found_card = False
 
-        # If there is a "start" card, execute it's effects before the simulation begins, and then remove it
+        # If there is a "start" card, execute it's effects before
+        # the simulation begins, and then remove it
         start_card_name = "start"
         if self.steps_count == 0 and start_card_name in self.all_card_names:
             # Execute the effects of the start card
@@ -252,7 +276,9 @@ class SelmaStorySimulation:
             if picked_card.name in self.draw_deck:
                 self.draw_deck.remove(picked_card_string)
 
-            if picked_card.fullfill_conditions(self,self.attributes,picked_card.name):
+            if picked_card.fullfill_conditions(self,
+                                               self.attributes,
+                                               picked_card.name):
                 have_found_card = True
 
         #Add the next cards to the draw deck
@@ -264,7 +290,8 @@ class SelmaStorySimulation:
             try:
                 selma_parser.execute_effect(self,fx)
             except Exception as e:
-                print ("Error while executing effect '%s' on card '%s'" % (fx, picked_card_string))
+                print ("Error while executing effect '%s' on card '%s'"
+                        % (fx, picked_card_string))
                 raise selma_parser.SelmaParseException(e)
 
 
@@ -276,7 +303,9 @@ class SelmaStorySimulation:
 
 
         # Log this event
-        event = SelmaEvent(event_card=picked_card, roles= self.roles, id=len(self.past_events))
+        event = SelmaEvent(event_card=picked_card,
+                           roles= self.roles,
+                           id=len(self.past_events))
         self.past_events.append(event)
 
         self.steps_count += 1
@@ -287,7 +316,10 @@ class SelmaStorySimulation:
             self.draw_deck.append(card_name)
             del self.draw_deck[0] # Discard the oldest card in the deck
         else:
-            raise SelmaException("Cannot add card name '%s'(on card '%s'.next) to the draw deck because there is no card with that name" % (card_name, picked_card_string))
+            raise SelmaException(
+                "Cannot add card name '%s'(on card '%s'.next) to the draw deck because there is no card with that name"
+                % (card_name, picked_card_string)
+            )
 
     'Execute an effect on this scope'
     def execute_effect(self,effect):
@@ -323,7 +355,7 @@ class SelmaEvent:
         self.values_modified = self.get_values_modified(event_card.effects)
 
     def __str__(self):
-        wrapper = "EVENT %s: '%s', \nmodifes %s;\naffected by %s\n" % (self.id, "%s", self.values_modified, self.values_affecting)
+        wrapper = "EVENT %s: '%s'" % (self.id,"%s")
         if self.subject and self.object:
             name = "%s %s to %s" % (self.subject, self.event_name, self.object)
             return wrapper % name
@@ -346,6 +378,7 @@ class SelmaEvent:
     "Returns a list(string) of every value that is affected by this event"
     def get_values_modified(self,event_effects):
         values = list()
+
         for fx in event_effects:
             value = fx[:fx.index(" ")]
 
@@ -358,9 +391,11 @@ class SelmaEvent:
                 values.append(value)
         return values
 
-    "Returns a list(string) of every value that played a role in selecting this event"
+    "Returns a list(string) of every value that played a role"
+    "in selecting this event"
     def get_values_affecting(self,event_card):
         values = list()
+
         for condition in event_card.conditions:
             value = condition[:condition.index(" ")]
 

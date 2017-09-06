@@ -51,7 +51,8 @@ def load_selma_file(selma_sim_object,path):
             index += 1
 
     # Separate each card into different strings
-    cards = get_definitions_of_type_in_text("card",file_content,literal_dictionary)
+    cards = get_definitions_of_type_in_text("card",
+                                            file_content,literal_dictionary)
 
     for card_tuple in cards:
         card_name, card_text = card_tuple
@@ -103,7 +104,10 @@ def parse_text_to_character_contents(name, character_text,literal_dictionary):
     return init_effects, attributes, inventory
 
 "Returns every line from inside a () statement"
-def get_strings_inside_parentheses(group_name, card_text,literal_dictionary, use_string=False):
+def get_strings_inside_parentheses(group_name,
+                                   card_text,
+                                   literal_dictionary,
+                                   use_string=False):
     results = list()
 
     find_group_regex = r'%s\s*\(([^\)]*)\)' % group_name

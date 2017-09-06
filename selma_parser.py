@@ -13,7 +13,7 @@ operator = {
     "value-equals":"=",
 
     "add-to":"+=",
-        "subtract-from":"-=",
+    "subtract-from":"-=",
 
     "multiply-numeric":"*=",
     "divide-numeric":"/=",
@@ -57,13 +57,15 @@ class SelmaOperation:
         matches = match_object.groups()
 
         # Get the variable name and variable holder object
-        parent_object, self.var_name = get_variable_reference(calling_object,matches[0])
+        parent_object, self.var_name = get_variable_reference(calling_object,
+                                                              matches[0])
         self.var_holder = get_var_holder(parent_object)
 
         # Check that the variable actually exists
         if not self.var_name in self.var_holder:
-            raise SelmaParseException(error_no_such_variable % (self.var_name,
-                                                                self.var_holder.__class__.__name__))
+            raise SelmaParseException(
+                error_no_such_variable % (self.var_name,
+                                          self.var_holder.__class__.__name__))
 
         self.var_type = self.var_holder[self.var_name].__class__.__name__
 
@@ -81,8 +83,8 @@ class SelmaOperation:
             self.argument = get_value_from_reference(calling_object,self.argument)
             self.argument_type = self.argument.__class__.__name__
 
+        # If the argument is a string, we need to remove the quotes
         elif self.argument_type == "str":
-            #if the argument is a string, we need to remove the quotes
             self.argument = self.argument[1:-1]
 
     "Returns the value of the variable"
@@ -181,20 +183,20 @@ def execute_effect(scope_object,line_string):
         add_variable_to_dict(op.get_var_value(),
                             op.var_name,
                             op.argument,
-                            0)
+                            default_value=0)
 
     elif op.operator == operator["define-list-variable"]:
         add_variable_to_dict(op.get_var_value(),
                             op.var_name,
                             op.argument,
-                            list()
+                            default_value=list()
                             )
 
     elif op.operator == operator["define-string-variable"]:
         add_variable_to_dict(op.get_var_value(),
                             op.var_name,
                             op.argument,
-                            "")
+                            default_value="")
 
     elif op.operator == operator["define-number-on-all"] or op.operator == operator["define-string-on-all"] or op.operator == operator["define-list-on-all"]:
 
@@ -210,7 +212,10 @@ def execute_effect(scope_object,line_string):
                 if("var" in item.__dict__):
                     item.var[op.argument] = default_value
                 else:
-                    raise SelmaParseException("Cannot create variables on %s becuase it's members has no variable field" % op.get_var_value())
+                    raise SelmaParseException(
+                        "Cannot create variables on %s becuase it's members has no variable field"
+                         % op.get_var_value()
+                         )
                     return
         elif op.var_type == "dict":
             for item_name in op.get_var_value():
@@ -218,14 +223,19 @@ def execute_effect(scope_object,line_string):
                 if("var" in item.__dict__):
                     item.var[op.argument] = default_value
                 else:
-                    raise SelmaParseException("Cannot create variables on %s becuase it's members has no variable field" % op.get_var_value())
+                    raise SelmaParseException(
+                        "Cannot create variables on %s becuase it's members has no variable field"
+                        % op.get_var_value())
                     return
         else:
             raise parse_error_wrong_type(op.operator,var_type,var_name)
 
     # The operator exists but has not defintion here
     elif op.operator in operator.values():
-        raise SelmaParseException("Operator '%s' can't be used to execute an effect" % op.operator)
+        raise SelmaParseException(
+            "Operator '%s' can't be used to execute an effect"
+            % op.operator
+        )
 
     else:
         raise SelmaParseException("Undefined operator '%s'" % op.operator)
@@ -284,7 +294,9 @@ def evaluate_condition(obj,line):
 
     # The operator exists but has not defintion here
     elif op.operator in operator.values():
-        raise SelmaParseException("Operator '%s' can't be used to evaluate a condition" % op.operator)
+        raise SelmaParseException(
+            "Operator '%s' can't be used to evaluate a condition"
+            % op.operator)
 
     else:
         raise SelmaParseException("Undefined operator '%s'" % op.operator)
@@ -311,8 +323,9 @@ def get_variable_reference(parent_object, string):
         else:
             t = parent_object.__class__.__name__
             print(string, t)
-            raise SelmaParseException(error_no_such_variable % (var_name,
-                                                                var_holder.__class__.__name__))
+            raise SelmaParseException(
+                error_no_such_variable % (var_name,
+                                          var_holder.__class__.__name__))
 
         rest_string   = string[string.index(".")+1:]
 
@@ -330,7 +343,9 @@ def get_value_from_reference(parent_object, string):
     if v_name in var_holder:
         return var_holder[v_name]
     else:
-        raise SelmaParseException(error_no_such_variable % (v_name, var_holder.__class__.__name__))
+        raise SelmaParseException(
+            error_no_such_variable % (v_name,
+                                      var_holder.__class__.__name__))
 
 "Call when a line uses an invalid operator"
 def parse_error_wrong_type(operator,type_name,var_name):
@@ -360,17 +375,20 @@ def parse_as_list(string):
     try:
         return ast.literal_eval(string)
     except ValueError:
-        raise SelmaParseException("Can't parse '%s' as list" % string)
+        raise SelmaParseException(
+            "Can't parse '%s' as list" % string)
     except:
-        raise SelmaParseException("Unknown exception when parsing list from string '%s'" % string)
+        raise SelmaParseException(
+            "Unknown exception when parsing list from string '%s'" % string)
 
 "Parses a string into a number"
 def parse_as_number(operator,string):
     try:
         return float(string)
     except:
-        raise SelmaParseException("operator %s must be used with a numeric value (not %s)"
-                                    % (operator,string))
+        raise SelmaParseException(
+            "operator %s must be used with a numeric value (not %s)"
+            % (operator,string))
 
 "Returns whichever object holds child variables."
 def get_var_holder(obj):
@@ -382,18 +400,23 @@ def get_var_holder(obj):
     elif obj.__dict__:
         return obj.__dict__
     else:
-        raise SelmaParseException("Object of type %s can't hold variables!" % obj_type)
+        raise SelmaParseException(
+            "Object of type %s can't hold variables!" % obj_type)
 
 "Adds a new entry into a variable holding dict"
-def add_variable_to_dict(dictionary, dictionary_name, variable_name, value):
+def add_variable_to_dict(dictionary, dictionary_name, variable_name, default_value):
 
     if dictionary.__class__.__name__ != "dict":
-        raise SelmaParseException("Can only create variables on dict type objects but %s is of type '%s'" % (var_name, var_type))
+        raise SelmaParseException(
+            "Can only create variables on dict type objects but %s is of type '%s'"
+            % (var_name, var_type))
     if variable_name.__class__.__name__ != "str":
         raise SelmaParseException("Name of variable must be a string!")
     if dictionary_name != "var":
-        raise SelmaParseException("You can only create custom variables in the 'var' dictionaries (You tried %s)" % dictionary_name)
-    dictionary[variable_name] = value
+        raise SelmaParseException(
+            "You can only create custom variables in the 'var' dictionaries (You tried %s)"
+            % dictionary_name)
+    dictionary[variable_name] = default_value
 
 
 "Exception to use for parsing errors"

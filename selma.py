@@ -56,6 +56,8 @@ class SelmaEventCard:
     'Returns true if all the condtions on this card are met'
     def fullfill_conditions(self,obj,_attributes,card_name):
 
+        # Empty the roles dictionary
+        obj.roles = {}
 
         if not len(self.conditions) and not len(self.roles) :
             return True
@@ -274,11 +276,9 @@ class SelmaStorySimulation:
 
 
         # Log this event
-        event = SelmaEvent(picked_card_string)
-        event.id = len(self.past_events)
-        event.set_roles(self.roles)
+        event = SelmaEvent(event_card=picked_card, roles= self.roles, id=len(self.past_events))
         self.past_events.append(event)
-        
+
         self.steps_count += 1
 
     'Adds the card named "card_name" to the deck of possible cards'
@@ -310,16 +310,20 @@ class SelmaException (Exception):
 'This class contains information about an event which has occured'
 class SelmaEvent:
 
-    def __init__(self, event_name, previous_event=0, id=0):
-        self.event_name = event_name
-        self.previous_event = previous_event
-        self.id = 0
+    def __init__(self, event_card, roles, id=0):
+        self.event_name = event_card.name
+        self.id = id
         self.roles = {}
         self.subject = 0
         self.object = 0
 
+        self.set_roles(roles)
+
+        self.values_affecting = self.get_values_affecting(event_card)
+        self.values_modified = self.get_values_modified(event_card.effects)
+
     def __str__(self):
-        wrapper = "EVENT %s: '%s'" % (self.id, "%s")
+        wrapper = "EVENT %s: '%s', \nmodifes %s;\naffected by %s\n" % (self.id, "%s", self.values_modified, self.values_affecting)
         if self.subject and self.object:
             name = "%s %s to %s" % (self.subject, self.event_name, self.object)
             return wrapper % name
@@ -338,3 +342,43 @@ class SelmaEvent:
             self.subject = self.roles[list(self.roles.keys())[0]]
         if len(self.roles) > 1:
             self.object = self.roles[list(self.roles.keys())[1]]
+
+    "Returns a list(string) of every value that is affected by this event"
+    def get_values_modified(self,event_effects):
+        values = list()
+        for fx in event_effects:
+            value = fx[:fx.index(" ")]
+
+            # Replace role references to a global refernce to
+            # the character who filled that role
+            for r in self.roles:
+                value = value.replace("roles.%s" % r, "cast.%s" % self.roles[r])
+
+            if not value in values:
+                values.append(value)
+        return values
+
+    "Returns a list(string) of every value that played a role in selecting this event"
+    def get_values_affecting(self,event_card):
+        values = list()
+        for condition in event_card.conditions:
+            value = condition[:condition.index(" ")]
+
+            if not value in values:
+                values.append(value_name)
+
+        # Convert the scope to global in the strings and replace
+        # role references with the character who filled that role
+        for role in event_card.roles:
+            role_requirements = event_card.roles[role]
+
+            character_name = self.roles[role]
+
+            for req in role_requirements:
+                value_name = req[:req.index(" ")]
+                value = "cast.%s.%s"%(character_name , value_name)
+
+                if not value in values:
+                    values.append(value)
+
+        return values

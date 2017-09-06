@@ -355,15 +355,19 @@ class SelmaEvent:
         self.values_modified = self.get_values_modified(event_card.effects)
 
     def __str__(self):
-        wrapper = "EVENT %s: '%s'" % (self.id,"%s")
+        return "EVENT %s: '%s'" % (self.id,self.as_sentence())
+
+    "Returns a sentence which describes the event"
+    def as_sentence(self):
         if self.subject and self.object:
             name = "%s %s to %s" % (self.subject, self.event_name, self.object)
-            return wrapper % name
+            return name
         elif self.subject:
             name = "%s %s" % (self.subject, self.event_name)
-            return wrapper % name
+            return name
         else:
-            return wrapper % self.event_name
+            return self.event_name
+
 
     "Copy the the name of the roles and the character into a new dictionary"
     def set_roles(self, roles):

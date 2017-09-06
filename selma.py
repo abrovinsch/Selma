@@ -273,7 +273,11 @@ class SelmaStorySimulation:
             print("Draw deck: %s\n" % self.draw_deck)
 
 
+        # Log this event
         event = SelmaEvent(picked_card_string)
+
+        event.id = len(self.past_events)
+        event.set_roles(self.roles)
         if len(self.roles) > 0:
             event.subject = self.roles[list(self.roles.keys())[0]].name
         if len(self.roles) > 1:
@@ -311,14 +315,16 @@ class SelmaException (Exception):
 'This class contains information about an event which has occured'
 class SelmaEvent:
 
-    def __init__(self, event_name, subject=0, object=0, previous_event=0):
+    def __init__(self, event_name, previous_event=0, id=0):
         self.event_name = event_name
-        self.subject = subject
-        self.object = object
         self.previous_event = previous_event
+        self.id = 0
+        self.roles = {}
+        self.subject = 0
+        self.object = 0
 
     def __str__(self):
-        wrapper = "EVENT '%s'"
+        wrapper = "EVENT %s: '%s'" % (self.id, "%s")
         if self.subject and self.object:
             name = "%s %s to %s" % (self.subject, self.event_name, self.object)
             return wrapper % name
@@ -327,3 +333,8 @@ class SelmaEvent:
             return wrapper % name
         else:
             return wrapper % self.event_name
+
+    "Copy the the name of the roles and the character into a new dictionary"
+    def set_roles(self, roles):
+        for r in roles:
+            self.roles[r] = roles[r].name

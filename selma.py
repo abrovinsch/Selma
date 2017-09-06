@@ -275,15 +275,10 @@ class SelmaStorySimulation:
 
         # Log this event
         event = SelmaEvent(picked_card_string)
-
         event.id = len(self.past_events)
         event.set_roles(self.roles)
-        if len(self.roles) > 0:
-            event.subject = self.roles[list(self.roles.keys())[0]].name
-        if len(self.roles) > 1:
-            event.object =  self.roles[list(self.roles.keys())[1]].name
-
         self.past_events.append(event)
+        
         self.steps_count += 1
 
     'Adds the card named "card_name" to the deck of possible cards'
@@ -338,3 +333,8 @@ class SelmaEvent:
     def set_roles(self, roles):
         for r in roles:
             self.roles[r] = roles[r].name
+
+        if len(self.roles) > 0:
+            self.subject = self.roles[list(self.roles.keys())[0]]
+        if len(self.roles) > 1:
+            self.object = self.roles[list(self.roles.keys())[1]]

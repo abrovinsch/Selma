@@ -43,7 +43,8 @@ allow_print_out = True
 
 class SelmaOperation:
 
-    "Initializes a new SelmaOperation object by parsing a line and grabbing references from the parent object"
+    "Initializes a new SelmaOperation object by parsing"
+    "a line and grabbing references from the parent object"
     def __init__(self,calling_object,line):
 
         # Remove any unneccesary whitespace
@@ -61,7 +62,8 @@ class SelmaOperation:
 
         # Check that the variable actually exists
         if not self.var_name in self.var_holder:
-            raise SelmaParseException(error_no_such_variable % (self.var_name, self.var_holder.__class__.__name__))
+            raise SelmaParseException(error_no_such_variable % (self.var_name,
+                                                                self.var_holder.__class__.__name__))
 
         self.var_type = self.var_holder[self.var_name].__class__.__name__
 
@@ -69,8 +71,7 @@ class SelmaOperation:
         self.operator = matches[1]
         if not self.operator in operator.values():
             raise SelmaParseException("Unknown operator '%s' in line '%s'" % \
-                                        (self.operator, line)
-                                        )
+                                        (self.operator, line))
 
         # Get the argument and it's type
         self.argument = matches[2]
@@ -105,9 +106,11 @@ class SelmaOperation:
         self.var_holder[self.var_name] += val
 
 "Execute the effect in 'line' on the object 'obj'"
-def execute_effect(obj,line):
+def execute_effect(scope_object,line_string):
 
-    op = SelmaOperation(obj,line)
+    op = SelmaOperation(scope_object,line_string)
+
+    # Do a diffent thing depending on the operator
 
     if op.operator == operator["assign-value"]:
         if op.argument_type == "float" or op.argument_type == "int":
@@ -219,8 +222,13 @@ def execute_effect(obj,line):
                     return
         else:
             raise parse_error_wrong_type(op.operator,var_type,var_name)
+
+    # The operator exists but has not defintion here
+    elif op.operator in operator.values():
+        raise SelmaParseException("Operator '%s' can't be used to execute an effect" % op.operator)
+
     else:
-        raise SelmaParseException("Unknown operator '%s'" % op.operator)
+        raise SelmaParseException("Undefined operator '%s'" % op.operator)
 
 "Return true if the statement in 'line' is true on object 'obj'"
 def evaluate_condition(obj,line):
@@ -274,8 +282,12 @@ def evaluate_condition(obj,line):
         else:
             parse_error_wrong_type(op.operator,op.argument,op.var_name)
 
+    # The operator exists but has not defintion here
+    elif op.operator in operator.values():
+        raise SelmaParseException("Operator '%s' can't be used to evaluate a condition" % op.operator)
+
     else:
-        raise SelmaParseException("Unknown operator '%s'" % op.operator)
+        raise SelmaParseException("Undefined operator '%s'" % op.operator)
 
 
 "Returns a reference to the variable which a string is refering to"
@@ -286,7 +298,6 @@ def get_variable_reference(parent_object, string):
 
     if "." in string:
         var_name = string[:string.index(".")]
-
         type_name = parent_object.__class__.__name__
 
         if type_name == "dict":
@@ -297,16 +308,15 @@ def get_variable_reference(parent_object, string):
         if var_name in var_holder:
             parent_object = var_holder[var_name]
             var_name = string[string.index(".")+1:]
-
         else:
             t = parent_object.__class__.__name__
             print(string, t)
-            raise SelmaParseException(error_no_such_variable % (var_name, var_holder.__class__.__name__))
+            raise SelmaParseException(error_no_such_variable % (var_name,
+                                                                var_holder.__class__.__name__))
 
         rest_string   = string[string.index(".")+1:]
 
     if "." in rest_string:
-
         parent_object, var_name = get_variable_reference(parent_object, rest_string)
 
     return parent_object, var_name
@@ -324,7 +334,8 @@ def get_value_from_reference(parent_object, string):
 
 "Call when a line uses an invalid operator"
 def parse_error_wrong_type(operator,type_name,var_name):
-    raise SelmaParseException("cannot use operator '%s' on a '%s' because it is of type %s" % (operator, var_name, type_name))
+    raise SelmaParseException("cannot use operator '%s' on a '%s' because it is of type %s"
+                                % (operator, var_name, type_name))
 
 "Returns the Type of a literal statement"
 def get_type_from_literal(value):
@@ -344,8 +355,6 @@ def get_type_from_literal(value):
 
     return "reference"
 
-    return value_type
-
 "Parses a string into a list"
 def parse_as_list(string):
     try:
@@ -360,7 +369,8 @@ def parse_as_number(operator,string):
     try:
         return float(string)
     except:
-        raise SelmaParseException("operator %s must be used with a numeric value (not %s)" % (operator,string))
+        raise SelmaParseException("operator %s must be used with a numeric value (not %s)"
+                                    % (operator,string))
 
 "Returns whichever object holds child variables."
 def get_var_holder(obj):
@@ -380,7 +390,7 @@ def add_variable_to_dict(dictionary, dictionary_name, variable_name, value):
     if dictionary.__class__.__name__ != "dict":
         raise SelmaParseException("Can only create variables on dict type objects but %s is of type '%s'" % (var_name, var_type))
     if variable_name.__class__.__name__ != "str":
-        raise SelmaParseException("Name of variable must be a string literal")
+        raise SelmaParseException("Name of variable must be a string!")
     if dictionary_name != "var":
         raise SelmaParseException("You can only create custom variables in the 'var' dictionaries (You tried %s)" % dictionary_name)
     dictionary[variable_name] = value

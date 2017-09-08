@@ -274,14 +274,15 @@ class SelmaStorySimulation:
                 picked_card_string = random_item_from_list(self.all_card_names)
             picked_card = self.event_cards[picked_card_string]
 
-            # Discard any card we have tried and failed
-            if picked_card.name in self.draw_deck:
-                self.draw_deck.remove(picked_card_string)
-
+            # Test if the card can be chosen
             if picked_card.fullfill_conditions(self,
                                                self.attributes,
                                                picked_card.name):
                 have_found_card = True
+
+            # Discard any card we have tried
+            if picked_card.name in self.draw_deck:
+                self.draw_deck.remove(picked_card_string)
 
         #Add the next cards to the draw deck
         for card_name in picked_card.next_cards:
@@ -328,7 +329,7 @@ class SelmaStorySimulation:
     def execute_effect(self,effect):
         selma_parser.execute_effect(self,effect)
 
-    'Evaluates a condition on this scope'
+    'Evaluates a condition on this scope, returns True/False'
     def evaluate_condition(self,condition):
         return selma_parser.evaluate_condition(self,condition)
 

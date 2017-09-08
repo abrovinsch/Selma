@@ -161,6 +161,8 @@ class SelmaStorySimulation:
         self.cast = {}
         self.roles = {}
 
+        self.past_events = list()
+
         self.debug_mode = debug_mode
         self.allow_output = allow_output
         selma_parser.allow_print_out = allow_output
@@ -305,6 +307,7 @@ class SelmaStorySimulation:
         # Log this event
         event = SelmaEvent(event_card=picked_card,
                            roles= self.roles,
+                           previous_events=self.past_events,
                            id=len(self.past_events))
         self.past_events.append(event)
 
@@ -342,7 +345,7 @@ class SelmaException (Exception):
 'This class contains information about an event which has occured'
 class SelmaEvent:
 
-    def __init__(self, event_card, roles, id=0):
+    def __init__(self, event_card, roles, previous_events, id=0):
         self.event_name = event_card.name
         self.id = id
         self.roles = {}
@@ -353,6 +356,15 @@ class SelmaEvent:
 
         self.values_affecting = self.get_values_affecting(event_card)
         self.values_modified = self.get_values_modified(event_card.effects)
+
+        self.causing_events = list()
+
+        for prev_event in previous_events:
+            for val in self.values_affecting:
+                if val in prev_event.values_modified:
+                    if not prev_event in self.causing_events and len(self.causing_events) < 4:
+                        self.causing_events.append(prev_event)
+
 
     def __str__(self):
         return "EVENT %s: '%s'" % (self.id,self.as_sentence())

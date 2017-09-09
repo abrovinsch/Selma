@@ -57,6 +57,7 @@ class SelmaStatement:
     def __init__(self, calling_object, line):
         """Initializes a new SelmaStatement object by parsing"
         a line and grabbing references from the parent object"""
+
         # Remove any unneccesary whitespace
         line = line.strip()
 
@@ -96,6 +97,19 @@ class SelmaStatement:
         # If the argument is a string, we need to remove the quotes
         elif self.argument_type == "str":
             self.argument = self.argument[1:-1]
+
+        # Save the global reference name of the variable
+        self.global_var_name = matches[0]
+        if calling_object.__class__.__name__ == "SelmaCharacter":
+            self.global_var_name = "cast.%s.%s" % (calling_object.name,
+                                                   self.global_var_name)
+        elif calling_object.__class__.__name__ == "SelmaStorySimulation":
+            if self.global_var_name.startswith("roles"):
+                role_name = self.global_var_name[6:]
+                role_name = role_name[:role_name.index(".")]
+
+                character_name = calling_object.roles[role_name].name
+                self.global_var_name = "cast.%s.%s" % (character_name,self.var_name)
 
     def get_var_value(self):
         """Returns the value of the variable"""
@@ -257,6 +271,8 @@ def execute_effect(scope_object, line_string):
 
     else:
         raise SelmaParseException("Undefined operator '%s'" % statement.operator)
+
+    return statement
 
 def evaluate_condition(obj, line):
     """Return true if the statement in 'line' is true on object 'obj'"""

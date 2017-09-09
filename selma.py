@@ -53,6 +53,7 @@ class SelmaCharacter:
 
         return result
 
+
 class SelmaEventCard:
     """
     A SelmaEventCard is a 'template' for a possible event
@@ -192,6 +193,7 @@ class SelmaEventCard:
             result += "  next=%s\n" % self.next_cards
 
         return result
+
 
 class SelmaStorySimulation:
     """
@@ -334,7 +336,8 @@ class SelmaStorySimulation:
             # Test if the card can be chosen
             if picked_card.fullfill_conditions(self,
                                                self.attributes,
-                                               picked_card.name):
+                                               picked_card.name,
+                                               condition_statements):
                 have_found_card = True
 
             # Discard any card we have tried
@@ -345,10 +348,12 @@ class SelmaStorySimulation:
         for card_name in picked_card.next_cards:
             self.add_card_to_draw_deck(card_name)
 
+        effect_statements = list()
         #Execute the effects of the card
         for effect in picked_card.effects:
             try:
-                selma_parser.execute_effect(self, effect)
+                statement = selma_parser.execute_effect(self, effect)
+                effect_statements.append(statement)
             except Exception as exception:
                 print("Error while executing effect '%s' on card '%s'"
                       % (effect, picked_card_string))
@@ -363,6 +368,8 @@ class SelmaStorySimulation:
         # Log this event
         event = SelmaEvent(event_card=picked_card,
                            roles=self.roles,
+                           effects=effect_statements,
+                           conditions=condition_statements,
                            previous_events=self.past_events,
                            event_id=len(self.past_events))
 
@@ -391,13 +398,6 @@ class SelmaStorySimulation:
         return selma_parser.evaluate_condition(self, condition)
 
 
-def random_item_from_list(list_in):
-    """Returns a random item from any list"""
-    if not list_in:
-        raise SelmaException("Can't grab random item from an empty list!")
-    index = random.randint(0, len(list_in)-1)
-    return list_in[index]
-
 class SelmaException(Exception):
     """A class for general Exceptions within selma"""
     pass
@@ -406,7 +406,13 @@ class SelmaException(Exception):
 class SelmaEvent:
     """This class contains information about an event which has occured"""
 
-    def __init__(self, event_card, roles, previous_events, event_id=0):
+    def __init__(self,
+                 event_card,
+                 effects,
+                 conditions,
+                 roles,
+                 previous_events,
+                 event_id=0):
         self.event_name = event_card.name
         self.event_id = event_id
         self.roles = {}
@@ -416,7 +422,11 @@ class SelmaEvent:
         self.set_roles(roles)
 
         self.values_affecting = self.get_values_affecting(event_card)
-        self.values_modified = self.get_values_modified(event_card.effects)
+
+        self.values_modified = list()
+        for effect in effects:
+            if not effect.global_var_name in self.values_modified:
+                self.values_modified.append(effect.global_var_name)
 
         self.causing_events = list()
 
@@ -454,24 +464,6 @@ class SelmaEvent:
         if len(self.roles) > 1:
             self.object = self.roles[list(self.roles.keys())[1]]
 
-    def get_values_modified(self, event_effects):
-        """Returns a list(string) of every value
-        that is affected by this event"""
-
-        values = list()
-
-        for effect in event_effects:
-            value = effect[:effect.index(" ")]
-
-            # Replace role references to a global refernce to
-            # the character who filled that role
-            for role in self.roles:
-                value = value.replace("roles.%s" % role, "cast.%s" % self.roles[role])
-
-            if not value in values:
-                values.append(value)
-        return values
-
     def get_values_affecting(self, event_card):
         """Returns a list(string) of every value that played a role"
         in selecting this event"""
@@ -498,3 +490,11 @@ class SelmaEvent:
                 if not value in values:
                     values.append(value)
         return values
+
+
+def random_item_from_list(list_in):
+    """Returns a random item from any list"""
+    if not list_in:
+        raise SelmaException("Can't grab random item from an empty list!")
+    index = random.randint(0, len(list_in)-1)
+    return list_in[index]

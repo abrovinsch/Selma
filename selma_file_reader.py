@@ -1,14 +1,21 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python
 
-import re, sys
+"""
+This is a module of 'Selma'
+by Oskar Lundqvist / Abrovinsch (c) 2017
+
+This module is responsible reading a .selma
+file and add it's contents to the simulation
+"""
+
+import re
 from selma_parser import SelmaParseException
 
-"Loads a .selma file and adds all it's data"
-def load_selma_file(selma_sim_object,path):
-
+def load_selma_file(selma_sim_object, path):
+    """Loads a .selma file and adds all it's data"""
     # Extract the name of the file and the directory from the path
-    search_object = re.search(r'/([^/]+\.selma)',path,flags=0)
+    search_object = re.search(r'/([^/]+\.selma)', path, flags=0)
     file_name = search_object.group(1)
 
     # Ignore files that does not have a .selma extension
@@ -16,7 +23,7 @@ def load_selma_file(selma_sim_object,path):
         raise SelmaParseException("Cannot only read files with a .selma extension (%s)" % path)
 
     # This is where we find other files to load
-    dictionary_directory = path.replace(file_name,"")
+    #TODO: dictionary_directory = path.replace(file_name, "")
 
     # Load the contents of the original file
     source_file = open(path)
@@ -27,53 +34,64 @@ def load_selma_file(selma_sim_object,path):
     #TODO: file_content = insert_external_files(file_content, dictionary_directory)
 
     # Remove double spaces
-    file_content = re.sub(r'  *',' ',file_content)
+    file_content = re.sub(r'  *', ' ', file_content)
     # Remove whitespace in beginning of lines
-    file_content = re.sub(r'\n\s*','\n',file_content)
+    file_content = re.sub(r'\n\s*', '\n', file_content)
     # Remove empty lines
-    file_content = re.sub(r'\n+','\n',file_content)
+    file_content = re.sub(r'\n+', '\n', file_content)
     # Remove inline comments
-    file_content = re.sub(r'//.*','\n',file_content)
+    file_content = re.sub(r'//.*', '\n', file_content)
     # Remove multiline comments
-    file_content = re.sub(r'/\*[\S|\s]*\*/','',file_content)
+    file_content = re.sub(r'/\*[\S|\s]*\*/', '', file_content)
 
     # Replace string literals
     find_string_literals_regex = r'\"[^\"]*\"'
-    all_string_literals = re.findall(find_string_literals_regex,file_content,flags=0)
+    all_string_literals = re.findall(find_string_literals_regex,
+                                     file_content,
+                                     flags=0)
     literal_dictionary = {}
 
     index = 0
-    for s in all_string_literals:
-        if not s in literal_dictionary.values():
+    for literal in all_string_literals:
+        if not literal in literal_dictionary.values():
             literal_name = "_LITERAL_%s" % index
-            literal_dictionary[literal_name] = s
-            file_content = file_content.replace(s,literal_name)
+            literal_dictionary[literal_name] = literal
+            file_content = file_content.replace(literal, literal_name)
             index += 1
 
     # Separate each card into different strings
     cards = get_definitions_of_type_in_text("card",
-                                            file_content,literal_dictionary)
+                                            file_content,
+                                            literal_dictionary)
 
     for card_tuple in cards:
         card_name, card_text = card_tuple
-        name, conditions, effects, next_cards, roles = parse_text_to_card_contents(card_name,card_text,literal_dictionary)
+        name, conditions, effects, next_cards, roles = text_to_card_contents(card_name, card_text, literal_dictionary)
         selma_sim_object.add_to_deck(name, effects, conditions, next_cards, roles)
 
     # Separate each character into different strings
-    characters = get_definitions_of_type_in_text("char",file_content,literal_dictionary)
+    characters = get_definitions_of_type_in_text("char",
+                                                 file_content,
+                                                 literal_dictionary)
 
     for character_tuple in characters:
         character_name, character_text = character_tuple
-        init_effects, attributes, inventory =  parse_text_to_character_contents(character_name, character_text, literal_dictionary )
+        init_effects, attributes, inventory = text_to_char_contents(character_text, literal_dictionary)
         selma_sim_object.add_character_to_cast(character_name, init_effects, attributes, inventory)
 
 
-"Parses a string for a event card"
-def parse_text_to_card_contents(name, card_text,literal_dictionary):
 
-    conditions =    get_strings_inside_parentheses("conditions",card_text,literal_dictionary)
-    effects    =    get_strings_inside_parentheses("effects",   card_text,literal_dictionary)
-    next_cards =    get_strings_inside_parentheses("next",      card_text,literal_dictionary)
+def text_to_card_contents(name, card_text, literal_dictionary):
+    """Parses a string for a event card"""
+    conditions = get_strings_inside_parentheses("conditions",
+                                                card_text,
+                                                literal_dictionary)
+    effects = get_strings_inside_parentheses("effects",
+                                             card_text,
+                                             literal_dictionary)
+    next_cards = get_strings_inside_parentheses("next",
+                                                card_text,
+                                                literal_dictionary)
 
     # Find all roles
     roles = list() # list of tuples of type name:string, lines:list(string)
@@ -94,57 +112,64 @@ def parse_text_to_card_contents(name, card_text,literal_dictionary):
 
     return name, conditions, effects, cleaned_next_cards, roles
 
-"Parses a string for a event card"
-def parse_text_to_character_contents(name, character_text,literal_dictionary):
 
-    init_effects =    get_strings_inside_parentheses("init",      character_text,literal_dictionary)
-    attributes   =    get_strings_inside_parentheses("attributes",character_text,literal_dictionary)
-    inventory    =    get_strings_inside_parentheses("inventory", character_text,literal_dictionary)
+def text_to_char_contents(character_text, literal_dictionary):
+    """Parses a string for a event card"""
+
+    init_effects = get_strings_inside_parentheses("init",
+                                                  character_text,
+                                                  literal_dictionary)
+    attributes = get_strings_inside_parentheses("attributes",
+                                                character_text,
+                                                literal_dictionary)
+    inventory = get_strings_inside_parentheses("inventory",
+                                               character_text,
+                                               literal_dictionary)
 
     return init_effects, attributes, inventory
 
-"Returns every line from inside a () statement"
+
 def get_strings_inside_parentheses(group_name,
                                    card_text,
                                    literal_dictionary,
                                    use_string=False):
+    """Returns every line from inside a () statement"""
     results = list()
 
     find_group_regex = r'%s\s*\(([^\)]*)\)' % group_name
-    search_object = re.search(find_group_regex,card_text,flags=0)
+    search_object = re.search(find_group_regex, card_text, flags=0)
 
     whole_group_string = ""
-    if(search_object):
-        if(use_string):
-            name = search_object.group(1)
+    if search_object:
+        if use_string:
             whole_group_string = search_object.group(2)
         else:
-            name = ""
             whole_group_string = search_object.group(1)
 
         for line in whole_group_string.split("\n"):
-            if len(line) > 0:   #Ignore empty lines
+            if line:   #Ignore empty lines
                 line = line.strip()
                 find_literal_regex = r'(_LITERAL_\d+)'
 
                 # Replace every literal on the line
-                match_literal_object = re.search(find_literal_regex,line,flags=0)
+                match_literal_object = re.search(find_literal_regex, line, flags=0)
                 while match_literal_object:
                     literal = match_literal_object.group(1)
-                    line = line.replace(literal,literal_dictionary[literal])
-                    match_literal_object = re.search(find_literal_regex,line,flags=0)
+                    line = line.replace(literal, literal_dictionary[literal])
+                    match_literal_object = re.search(find_literal_regex, line, flags=0)
                 results.append(line)
         return results
     else:
-         return list()
+        return list()
 
-"Returns every definition{} in the text as a list of tuples,"
-"each containing the name of the definition and it's text"
-def get_definitions_of_type_in_text(type,text,literal_dictionary):
+def get_definitions_of_type_in_text(type_string, text, literal_dictionary):
+    """Returns every definition{} in the text as a list of tuples,
+    each containing the name of the definition and it's text"""
+
     all_instances = list()
-    find_defintions_regex = r'%s\s*(_LITERAL_\d+)\s*\{([^\}]*)\}' % type
+    find_defintions_regex = r'%s\s*(_LITERAL_\d+)\s*\{([^\}]*)\}' % type_string
 
-    all_definitions = re.findall(find_defintions_regex,text,flags=0)
+    all_definitions = re.findall(find_defintions_regex, text, flags=0)
 
     # Parse each definition into a tuple containing name and it's text
     index = 0

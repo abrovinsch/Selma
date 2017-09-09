@@ -39,16 +39,16 @@ class SelmaCharacter:
         the SelmaCharacter"""
         result = "<---Character %s--->" % self.name
 
-        if len(self.attributes):
+        if self.attributes:
             result += "  effects=%s\n" % self.attributes
 
-        if len(self.personality):
+        if self.personality:
             result += "  personality=%s\n" % self.personality
 
-        if len(self.inventory):
+        if self.inventory:
             result += "  inventory=%s\n" % self.inventory
 
-        if len(self.var):
+        if self.var:
             result += "  var=%s\n" % self.var
 
         return result
@@ -104,7 +104,7 @@ class SelmaEventCard:
         if role_tuples:
             for role_tuple in role_tuples:
                 role_name, role_conditions = role_tuple
-                if len(role_name) > 0:
+                if role_name:
                     self.roles[role_name] = role_conditions
 
     def fullfill_conditions(self, obj, _attributes, card_name):
@@ -116,7 +116,7 @@ class SelmaEventCard:
         # Empty the roles dictionary
         obj.roles = {}
 
-        if not len(self.conditions) and not len(self.roles):
+        if not self.conditions and not self.roles:
             return True
 
         # Pick a random character in the cast until
@@ -133,9 +133,9 @@ class SelmaEventCard:
                 if taken_character in characters_to_try:
                     characters_to_try.remove(taken_character)
 
-            # Loop until we find someone to fill the role or we run out of
-            # characters to try for it
-            while len(characters_to_try) > 0 and not role in obj.roles:
+            # Loop until we find someone to fill the role or we
+            # run out of characters to try for it
+            while characters_to_try and not role in obj.roles:
 
                 # This is done because it is very important
                 # that the characters are tested in random order!
@@ -177,19 +177,18 @@ class SelmaEventCard:
     def __str__(self):
         result = "<---%s--->\n" % self.name
 
-        if len(self.effects):
+        if self.effects:
             result += "  effects=%s\n" % self.effects
 
-        if len(self.conditions):
+        if self.conditions:
             result += "  conditions=%s\n" % self.conditions
 
-        if len(self.roles):
+        if self.roles:
             result += "  <- Roles ->\n"
             for role in self.roles:
                 result += "    %s=%s\n" % (role[0], role[1])
 
-
-        if len(self.next_cards):
+        if self.next_cards:
             result += "  next=%s\n" % self.next_cards
 
         return result
@@ -355,21 +354,19 @@ class SelmaStorySimulation:
                       % (effect, picked_card_string))
                 raise selma_parser.SelmaParseException(exception)
 
-
         if self.debug_mode:
             print("Picked card: '%s'" % picked_card.name)
             print("Attributes: %s" % self.attributes)
             print("Cast: %s" % list(self.cast.keys()))
             print("Draw deck: %s\n" % self.draw_deck)
 
-
         # Log this event
         event = SelmaEvent(event_card=picked_card,
                            roles=self.roles,
                            previous_events=self.past_events,
                            event_id=len(self.past_events))
-        self.past_events.append(event)
 
+        self.past_events.append(event)
         self.steps_count += 1
 
     def add_card_to_draw_deck(self, card_name):
@@ -396,7 +393,7 @@ class SelmaStorySimulation:
 
 def random_item_from_list(list_in):
     """Returns a random item from any list"""
-    if len(list_in) == 0:
+    if not list_in:
         raise SelmaException("Can't grab random item from an empty list!")
     index = random.randint(0, len(list_in)-1)
     return list_in[index]
@@ -445,8 +442,6 @@ class SelmaEvent:
 
         return self.event_name
 
-
-
     def set_roles(self, roles):
         """Copy the the name of the roles
         and the character into a new dictionary"""
@@ -454,7 +449,7 @@ class SelmaEvent:
         for role in roles:
             self.roles[role] = roles[role].name
 
-        if len(self.roles) > 0:
+        if self.roles:
             self.subject = self.roles[list(self.roles.keys())[0]]
         if len(self.roles) > 1:
             self.object = self.roles[list(self.roles.keys())[1]]
@@ -502,5 +497,4 @@ class SelmaEvent:
 
                 if not value in values:
                     values.append(value)
-
         return values

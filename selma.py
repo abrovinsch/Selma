@@ -215,7 +215,6 @@ class SelmaStorySimulation:
 
         self.attributes = list()
         self.var = {}
-
         self.cast = {}
         self.roles = {}
 
@@ -336,20 +335,30 @@ class SelmaStorySimulation:
             # Test if the card can be chosen
             if picked_card.fullfill_conditions(self,
                                                self.attributes,
-                                               picked_card.name,
-                                               condition_statements):
+                                               picked_card.name):
                 have_found_card = True
 
             # Discard any card we have tried
             if picked_card.name in self.draw_deck:
                 self.draw_deck.remove(picked_card_string)
 
-        #Add the next cards to the draw deck
+        # Add the next cards to the draw deck
         for card_name in picked_card.next_cards:
             self.add_card_to_draw_deck(card_name)
 
+        # Save all the requirements of this card in a list
+        # so we can use it to determine which cards caused event
+        condition_statements = list()
+        for conditional_statement in picked_card.conditions:
+            condition_statements.append(selma_parser.SelmaStatement(self, condition_statement))
+
+        for role in picked_card.roles:
+            for line in picked_card.roles[role]:
+                condition_statements.append(selma_parser.SelmaStatement(self.roles[role], line))
+
         effect_statements = list()
-        #Execute the effects of the card
+
+        # Execute the effects of the card
         for effect in picked_card.effects:
             try:
                 statement = selma_parser.execute_effect(self, effect)
@@ -421,7 +430,11 @@ class SelmaEvent:
 
         self.set_roles(roles)
 
-        self.values_affecting = self.get_values_affecting(event_card)
+        #self.values_affecting = self.get_values_affecting(event_card)
+        self.values_affecting = list()
+        for condition in conditions:
+            if not condition.global_var_name in self.values_affecting:
+                self.values_affecting.append(condition.global_var_name)
 
         self.values_modified = list()
         for effect in effects:
@@ -432,8 +445,7 @@ class SelmaEvent:
 
         for prev_event in previous_events:
             for val in self.values_affecting:
-                if val in prev_event.values_modified:
-                    if not prev_event in self.causing_events and len(self.causing_events) < 4:
+                if val in prev_event.values_modified and not prev_event in self.causing_events:
                         self.causing_events.append(prev_event)
 
 
@@ -463,33 +475,6 @@ class SelmaEvent:
             self.subject = self.roles[list(self.roles.keys())[0]]
         if len(self.roles) > 1:
             self.object = self.roles[list(self.roles.keys())[1]]
-
-    def get_values_affecting(self, event_card):
-        """Returns a list(string) of every value that played a role"
-        in selecting this event"""
-
-        values = list()
-
-        for condition in event_card.conditions:
-            value_name = condition[:condition.index(" ")]
-
-            if not value_name in values:
-                values.append(value_name)
-
-        # Convert the scope to global in the strings and replace
-        # role references with the character who filled that role
-        for role in event_card.roles:
-            role_requirements = event_card.roles[role]
-
-            character_name = self.roles[role]
-
-            for req in role_requirements:
-                value_name = req[:req.index(" ")]
-                value = "cast.%s.%s"%(character_name, value_name)
-
-                if not value in values:
-                    values.append(value)
-        return values
 
 
 def random_item_from_list(list_in):

@@ -350,7 +350,7 @@ class SelmaStorySimulation:
         # so we can use it to determine which cards caused event
         condition_statements = list()
         for conditional_statement in picked_card.conditions:
-            condition_statements.append(selma_parser.SelmaStatement(self, condition_statement))
+            condition_statements.append(selma_parser.SelmaStatement(self, conditional_statement))
 
         for role in picked_card.roles:
             for line in picked_card.roles[role]:
@@ -430,24 +430,29 @@ class SelmaEvent:
 
         self.set_roles(roles)
 
-        #self.values_affecting = self.get_values_affecting(event_card)
+        self.causing_events = list()
         self.values_affecting = list()
+
         for condition in conditions:
             if not condition.global_var_name in self.values_affecting:
                 self.values_affecting.append(condition.global_var_name)
+
+                last_event_modifying_value = 0
+                if condition.argument_type == "str":
+                    for prev_event in previous_events:
+                        if condition.global_var_name in prev_event.values_modified:
+                            last_event_modifying_value = prev_event
+                    if last_event_modifying_value:
+                        self.causing_events.append(last_event_modifying_value)
+                else:
+                    for prev_event in previous_events:
+                        if condition.global_var_name in prev_event.values_modified:
+                            self.causing_events.append(prev_event)
 
         self.values_modified = list()
         for effect in effects:
             if not effect.global_var_name in self.values_modified:
                 self.values_modified.append(effect.global_var_name)
-
-        self.causing_events = list()
-
-        for prev_event in previous_events:
-            for val in self.values_affecting:
-                if val in prev_event.values_modified and not prev_event in self.causing_events:
-                        self.causing_events.append(prev_event)
-
 
     def __str__(self):
         return "EVENT %s: '%s'" % (self.event_id, self.as_sentence())

@@ -1,9 +1,19 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python
-import ast, re
 
-"This defines every operator"
-operator = {
+"""
+This is a module of 'Selma'
+by Oskar Lundqvist / Abrovinsch (c) 2017
+
+This module is responsible for all parsing of
+selma statements
+"""
+
+import ast
+import re
+
+#This defines the operators
+OPERATOR = {
     "append":"add",
     "append-list":"add-these",
     "remove-from-list":"remove",
@@ -38,20 +48,20 @@ operator = {
     "define-list-on-all":"create-list-all"
 }
 
-error_no_such_variable = "There is no variable named '%s' on object %s"
-allow_print_out = True
+ERROR_NO_SUCH_VARIABLE = "There is no variable named '%s' on object %s"
+ALLOW_PRINT_OUT = True
 
-class SelmaOperation:
+class SelmaStatement:
+    """A selma statement"""
 
-    "Initializes a new SelmaOperation object by parsing"
-    "a line and grabbing references from the parent object"
-    def __init__(self,calling_object,line):
-
+    def __init__(self, calling_object, line):
+        """Initializes a new SelmaStatement object by parsing"
+        a line and grabbing references from the parent object"""
         # Remove any unneccesary whitespace
         line = line.strip()
 
-        # Search for a operation pattern
-        match_object = re.match(r'(\S+)\s+(\S+)\s+(.*)',line,flags=0)
+        # Search for a statement pattern
+        match_object = re.match(r'(\S+)\s+(\S+)\s+(.*)', line, flags=0)
         if not match_object:
             raise SelmaParseException("invalid syntax '%s'" % line)
         matches = match_object.groups()
@@ -64,14 +74,14 @@ class SelmaOperation:
         # Check that the variable actually exists
         if not self.var_name in self.var_holder:
             raise SelmaParseException(
-                error_no_such_variable % (self.var_name,
+                ERROR_NO_SUCH_VARIABLE % (self.var_name,
                                           self.var_holder.__class__.__name__))
 
         self.var_type = self.var_holder[self.var_name].__class__.__name__
 
         # Get the operator and make sure it is defined
         self.operator = matches[1]
-        if not self.operator in operator.values():
+        if not self.operator in OPERATOR.values():
             raise SelmaParseException("Unknown operator '%s' in line '%s'" % \
                                         (self.operator, line))
 
@@ -80,230 +90,227 @@ class SelmaOperation:
         self.argument_type = get_type_from_literal(self.argument)
 
         if self.argument_type == "reference":
-            self.argument = get_value_from_reference(calling_object,self.argument)
+            self.argument = get_value_from_reference(calling_object, self.argument)
             self.argument_type = self.argument.__class__.__name__
 
         # If the argument is a string, we need to remove the quotes
         elif self.argument_type == "str":
             self.argument = self.argument[1:-1]
 
-    "Returns the value of the variable"
-    def get_var_value(self,):
+    def get_var_value(self):
+        """Returns the value of the variable"""
         return self.var_holder[self.var_name]
 
-    "Sets the value of the variable"
-    def set_var_to(self,val):
+    def set_var_to(self, val):
+        """Sets the value of the variable"""
         self.var_holder[self.var_name] = val
 
-    "Appends a value to the variable"
-    def append(self,val):
+    def append(self, val):
+        """Appends a value to the variable"""
         self.var_holder[self.var_name].append(val)
 
-    "Removes a value from the variable"
-    def remove(self,val):
+    def remove(self, val):
+        """Removes a value from the variable"""
         self.var_holder[self.var_name].remove(val)
 
-    "Adds a value to the variable"
-    def add(self,val):
+    def add(self, val):
+        """Adds a value to the variable"""
         self.var_holder[self.var_name] += val
 
-"Execute the effect in 'line' on the object 'obj'"
-def execute_effect(scope_object,line_string):
+def execute_effect(scope_object, line_string):
+    """Execute the effect in 'line' on the object 'obj'"""
 
-    op = SelmaOperation(scope_object,line_string)
+    stmnt = SelmaStatement(scope_object, line_string)
 
     # Do a diffent thing depending on the operator
-
-    if op.operator == operator["assign-value"]:
-        if op.argument_type == "float" or op.argument_type == "int":
-            op.set_var_to(parse_as_number(op.operator,op.argument))
-        elif op.var_type == "list" and op.argument_type == "literal-list":
-            op.set_var_to(parse_as_list(op.argument))
+    if stmnt.operator == OPERATOR["assign-value"]:
+        if stmnt.argument_type == "float" or stmnt.argument_type == "int":
+            stmnt.set_var_to(parse_as_number(stmnt.operator, stmnt.argument))
+        elif stmnt.var_type == "list" and stmnt.argument_type == "literal-list":
+            stmnt.set_var_to(parse_as_list(stmnt.argument))
         else:
-            op.set_var_to(op.argument)
+            stmnt.set_var_to(stmnt.argument)
 
-    elif op.operator == operator["append"]:
-        if op.var_type == "list":
-            op.append(op.argument)
+    elif stmnt.operator == OPERATOR["append"]:
+        if stmnt.var_type == "list":
+            stmnt.append(stmnt.argument)
         else:
-            raise parse_error_wrong_type(op.operator,
-                                        op.get_var_value().__class__.__name__,
-                                        op.var_name)
+            raise parse_error_wrong_type(stmnt.operator,
+                                         stmnt.get_var_value().__class__.__name__,
+                                         stmnt.var_name)
 
-    elif op.operator == operator["append-list"]:
-        if op.argument_type == "literal-list":
-            list_to_append = parse_as_list(op.argument)
+    elif stmnt.operator == OPERATOR["append-list"]:
+        if stmnt.argument_type == "literal-list":
+            list_to_append = parse_as_list(stmnt.argument)
             for item in list_to_append:
-                op.append(item)
-        elif op.argument_type == "list":
-            list_to_append = op.argument
+                stmnt.append(item)
+        elif stmnt.argument_type == "list":
+            list_to_append = stmnt.argument
             for item in list_to_append:
-                op.append(item)
+                stmnt.append(item)
         else:
-            raise parse_error_wrong_type(op.operator,op.argument,op.var_name)
+            raise parse_error_wrong_type(stmnt.operator, stmnt.argument, stmnt.var_name)
 
-    elif op.operator == operator["remove-from-list"]:
-        if op.var_type == "list":
-            if op.argument in op.get_var_value():
-                op.remove(op.argument)
+    elif stmnt.operator == OPERATOR["remove-from-list"]:
+        if stmnt.var_type == "list":
+            if stmnt.argument in stmnt.get_var_value():
+                stmnt.remove(stmnt.argument)
         else:
-            raise parse_error_wrong_type(op.operator,op.argument,op.var_name)
+            raise parse_error_wrong_type(stmnt.operator, stmnt.argument, stmnt.var_name)
 
-    elif op.operator == operator["remove-from-list-many"]:
-        if op.var_type == "list":
-            list_to_remove = parse_as_list(op.argument)
+    elif stmnt.operator == OPERATOR["remove-from-list-many"]:
+        if stmnt.var_type == "list":
+            list_to_remove = parse_as_list(stmnt.argument)
             for item in list_to_remove:
-                if item in op.get_var_value():
-                    op.remove(item)
+                if item in stmnt.get_var_value():
+                    stmnt.remove(item)
         else:
-            raise parse_error_wrong_type(op.operator,op.argument,op.var_name)
+            raise parse_error_wrong_type(stmnt.operator, stmnt.argument, stmnt.var_name)
 
-    elif op.operator == operator["add-to"]:
-        if op.var_type == "str":
-            op.var_holder[op.var_name] += op.argument
+    elif stmnt.operator == OPERATOR["add-to"]:
+        if stmnt.var_type == "str":
+            stmnt.var_holder[stmnt.var_name] += stmnt.argument
         else:
-            op.add(parse_as_number(op.operator,op.argument))
+            stmnt.add(parse_as_number(stmnt.operator, stmnt.argument))
 
-    elif op.operator == operator["subtract-from"]:
-        op.var_holder[op.var_name] -= parse_as_number(op.operator,op.argument)
+    elif stmnt.operator == OPERATOR["subtract-from"]:
+        stmnt.var_holder[stmnt.var_name] -= parse_as_number(stmnt.operator, stmnt.argument)
 
-    elif op.operator == operator["divide-numeric"]:
-        op.var_holder[op.var_name] /= parse_as_number(op.operator,op.argument)
+    elif stmnt.operator == OPERATOR["divide-numeric"]:
+        stmnt.var_holder[stmnt.var_name] /= parse_as_number(stmnt.operator, stmnt.argument)
 
-    elif op.operator == operator["multiply-numeric"]:
-        op.var_holder[op.var_name] *= parse_as_number(op.operator,op.argument)
+    elif stmnt.operator == OPERATOR["multiply-numeric"]:
+        stmnt.var_holder[stmnt.var_name] *= parse_as_number(stmnt.operator, stmnt.argument)
 
-    elif op.operator == operator["print-value"]:
-        if op.argument == "":
-            op.argument = "$"
-        if(allow_print_out):
-            print(op.argument.replace("$",str(op.get_var_value())))
+    elif stmnt.operator == OPERATOR["print-value"]:
+        if stmnt.argument == "":
+            stmnt.argument = "$"
+        if ALLOW_PRINT_OUT:
+            print(stmnt.argument.replace("$", str(stmnt.get_var_value())))
 
-    elif op.operator == operator["define-numeric-variable"]:
-        add_variable_to_dict(op.get_var_value(),
-                            op.var_name,
-                            op.argument,
-                            default_value=0)
+    elif stmnt.operator == OPERATOR["define-numeric-variable"]:
+        add_variable_to_dict(stmnt.get_var_value(),
+                             stmnt.var_name,
+                             stmnt.argument,
+                             default_value=0)
 
-    elif op.operator == operator["define-list-variable"]:
-        add_variable_to_dict(op.get_var_value(),
-                            op.var_name,
-                            op.argument,
-                            default_value=list()
-                            )
+    elif stmnt.operator == OPERATOR["define-list-variable"]:
+        add_variable_to_dict(stmnt.get_var_value(),
+                             stmnt.var_name,
+                             stmnt.argument,
+                             default_value=list())
 
-    elif op.operator == operator["define-string-variable"]:
-        add_variable_to_dict(op.get_var_value(),
-                            op.var_name,
-                            op.argument,
-                            default_value="")
+    elif stmnt.operator == OPERATOR["define-string-variable"]:
+        add_variable_to_dict(stmnt.get_var_value(),
+                             stmnt.var_name,
+                             stmnt.argument,
+                             default_value="")
 
-    elif op.operator == operator["define-number-on-all"] or op.operator == operator["define-string-on-all"] or op.operator == operator["define-list-on-all"]:
+    elif stmnt.operator == OPERATOR["define-number-on-all"] or stmnt.operator == OPERATOR["define-string-on-all"] or stmnt.operator == OPERATOR["define-list-on-all"]:
 
-        if op.operator == operator["define-string-on-all"]:
+        if stmnt.operator == OPERATOR["define-string-on-all"]:
             default_value = ""
-        elif op.operator == operator["define-list-on-all"]:
+        elif stmnt.operator == OPERATOR["define-list-on-all"]:
             default_value = list()
         else:
             default_value = 0
 
-        if op.var_type == "list":
-            for item in op.get_var_value():
-                if("var" in item.__dict__):
-                    item.var[op.argument] = default_value
+        if stmnt.var_type == "list":
+            for item in stmnt.get_var_value():
+                if "var" in item.__dict__:
+                    item.var[stmnt.argument] = default_value
                 else:
                     raise SelmaParseException(
-                        "Cannot create variables on %s becuase it's members has no variable field"
-                         % op.get_var_value()
-                         )
-                    return
-        elif op.var_type == "dict":
-            for item_name in op.get_var_value():
-                item = op.get_var_value()[item_name]
-                if("var" in item.__dict__):
-                    item.var[op.argument] = default_value
+                        """Cannot create variables on %s becuase
+                        it's members has no variable field"""
+                        % stmnt.get_var_value())
+
+        elif stmnt.var_type == "dict":
+            for item_name in stmnt.get_var_value():
+                item = stmnt.get_var_value()[item_name]
+                if "var" in item.__dict__:
+                    item.var[stmnt.argument] = default_value
                 else:
                     raise SelmaParseException(
-                        "Cannot create variables on %s becuase it's members has no variable field"
-                        % op.get_var_value())
-                    return
+                        """Cannot create variables on %s
+                        becuase it's members has no variable field"""
+                        % stmnt.get_var_value())
+
         else:
-            raise parse_error_wrong_type(op.operator,var_type,var_name)
+            raise parse_error_wrong_type(stmnt.operator, stmnt.var_type, stmnt.var_name)
 
     # The operator exists but has not defintion here
-    elif op.operator in operator.values():
+    elif stmnt.operator in OPERATOR.values():
         raise SelmaParseException(
             "Operator '%s' can't be used to execute an effect"
-            % op.operator
-        )
+            % stmnt.operator)
 
     else:
-        raise SelmaParseException("Undefined operator '%s'" % op.operator)
+        raise SelmaParseException("Undefined operator '%s'" % stmnt.operator)
 
-"Return true if the statement in 'line' is true on object 'obj'"
-def evaluate_condition(obj,line):
+def evaluate_condition(obj, line):
+    """Return true if the statement in 'line' is true on object 'obj'"""
 
-    op = SelmaOperation(obj,line)
+    stmnt = SelmaStatement(obj, line)
 
-    if op.operator == operator["value-equals"]:
-        if not op.var_name in op.var_holder:
+    if stmnt.operator == OPERATOR["value-equals"]:
+        if not stmnt.var_name in stmnt.var_holder:
             return False
-        if op.argument_type == "int" or op.argument_type == "float":
-            return op.get_var_value() == parse_as_number(op.operator,op.argument)
-        elif op.var_type == "list":
-            return op.get_var_value() == parse_as_list(op.argument)
-        else:
-            return op.get_var_value() == op.argument
+        if stmnt.argument_type == "int" or stmnt.argument_type == "float":
+            return stmnt.get_var_value() == parse_as_number(stmnt.operator, stmnt.argument)
+        if stmnt.var_type == "list":
+            return stmnt.get_var_value() == parse_as_list(stmnt.argument)
 
-    if op.operator == operator["value-not-equals"]:
-        if not op.var_name in op.var_holder:
+        return stmnt.get_var_value() == stmnt.argument
+
+    if stmnt.operator == OPERATOR["value-not-equals"]:
+        if not stmnt.var_name in stmnt.var_holder:
             return True
-        if op.argument_type == "int" or op.argument_type == "float":
-            return op.get_var_value() != parse_as_number(op.operator,op.argument)
-        elif op.var_type == "list":
-            return op.get_var_value() != parse_as_list(op.argument)
+        if stmnt.argument_type == "int" or stmnt.argument_type == "float":
+            return stmnt.get_var_value() != parse_as_number(stmnt.operator, stmnt.argument)
+        if stmnt.var_type == "list":
+            return stmnt.get_var_value() != parse_as_list(stmnt.argument)
+
+        return stmnt.get_var_value() != stmnt.argument
+
+    if stmnt.operator == OPERATOR["greater-than"]:
+        return stmnt.get_var_value() > parse_as_number(stmnt.operator, stmnt.argument)
+
+    if stmnt.operator == OPERATOR["lesser-than"]:
+        return stmnt.get_var_value() < parse_as_number(stmnt.operator, stmnt.argument)
+
+    if stmnt.operator == OPERATOR["greater-than-or-equal"]:
+        if stmnt.var_type == "int" or stmnt.var_type == "float":
+            return stmnt.get_var_value() >= parse_as_number(stmnt.operator, stmnt.argument)
+
+        parse_error_wrong_type(stmnt.operator, stmnt.argument, stmnt.var_name)
+
+    if stmnt.operator == OPERATOR["lesser-than-or-equal"]:
+        return stmnt.get_var_value() <= parse_as_number(stmnt.operator, stmnt.argument)
+
+    if stmnt.operator == OPERATOR["list-doesnt-contain"]:
+        if stmnt.var_type == "list":
+            return not stmnt.argument in stmnt.get_var_value()
         else:
-            return op.get_var_value() != op.argument
+            parse_error_wrong_type(stmnt.operator, stmnt.argument, stmnt.var_name)
 
-    elif op.operator == operator["greater-than"]:
-        return op.get_var_value() > parse_as_number(op.operator,op.argument)
-
-    elif op.operator == operator["lesser-than"]:
-        return op.get_var_value() < parse_as_number(op.operator,op.argument)
-
-    elif op.operator == operator["greater-than-or-equal"]:
-        if op.var_type == "int" or op.var_type == "float":
-            return op.get_var_value() >= parse_as_number(op.operator,op.argument)
+    if stmnt.operator == OPERATOR["list-contains"]:
+        if stmnt.var_type == "list":
+            return stmnt.argument in stmnt.get_var_value()
         else:
-            parse_error_wrong_type(op.operator,op.argument,op.var_name)
-
-    elif op.operator == operator["lesser-than-or-equal"]:
-        return op.get_var_value() <= parse_as_number(op.operator,op.argument)
-
-    elif op.operator == operator["list-doesnt-contain"]:
-        if op.var_type == "list":
-            return not op.argument in op.get_var_value()
-        else:
-            parse_error_wrong_type(op.operator,op.argument,op.var_name)
-
-    elif op.operator == operator["list-contains"]:
-        if op.var_type == "list":
-            return op.argument in op.get_var_value()
-        else:
-            parse_error_wrong_type(op.operator,op.argument,op.var_name)
+            parse_error_wrong_type(stmnt.operator, stmnt.argument, stmnt.var_name)
 
     # The operator exists but has not defintion here
-    elif op.operator in operator.values():
+    if stmnt.operator in OPERATOR.values():
         raise SelmaParseException(
             "Operator '%s' can't be used to evaluate a condition"
-            % op.operator)
+            % stmnt.operator)
 
-    else:
-        raise SelmaParseException("Undefined operator '%s'" % op.operator)
+    raise SelmaParseException("Undefined operator '%s'" % stmnt.operator)
 
 
-"Returns a reference to the variable which a string is refering to"
 def get_variable_reference(parent_object, string):
+    """Returns a reference to the variable which a string is refering to"""
 
     rest_string = ""
     var_name = string
@@ -321,22 +328,21 @@ def get_variable_reference(parent_object, string):
             parent_object = var_holder[var_name]
             var_name = string[string.index(".")+1:]
         else:
-            t = parent_object.__class__.__name__
-            print(string, t)
             raise SelmaParseException(
-                error_no_such_variable % (var_name,
+                ERROR_NO_SUCH_VARIABLE % (var_name,
                                           var_holder.__class__.__name__))
 
-        rest_string   = string[string.index(".")+1:]
+        rest_string = string[string.index(".")+1:]
 
     if "." in rest_string:
         parent_object, var_name = get_variable_reference(parent_object, rest_string)
 
     return parent_object, var_name
 
-"Returns the value from a string reference to a variable"
 def get_value_from_reference(parent_object, string):
-    parent_object, v_name = get_variable_reference(parent_object,string)
+    """Returns the value from a string reference to a variable"""
+
+    parent_object, v_name = get_variable_reference(parent_object, string)
 
     var_holder = get_var_holder(parent_object)
 
@@ -344,34 +350,42 @@ def get_value_from_reference(parent_object, string):
         return var_holder[v_name]
     else:
         raise SelmaParseException(
-            error_no_such_variable % (v_name,
+            ERROR_NO_SUCH_VARIABLE % (v_name,
                                       var_holder.__class__.__name__))
 
-"Call when a line uses an invalid operator"
-def parse_error_wrong_type(operator,type_name,var_name):
-    raise SelmaParseException("cannot use operator '%s' on a '%s' because it is of type %s"
+def parse_error_wrong_type(operator, type_name, var_name):
+    """Call when a line uses an invalid operator"""
+
+    raise SelmaParseException("""cannot use operator '%s' on a '%s'
+                              because it is of type %s"""
                                 % (operator, var_name, type_name))
 
-"Returns the Type of a literal statement"
 def get_type_from_literal(value):
+    """Returns the Type of a literal statement"""
     value = value.strip()
 
-    match_object = re.match(r'^-?\d+\.?\d*$',value,flags=0)
+    match_object = re.match(r'^-?\d+\.?\d*$', value, flags=0)
     if match_object:
         return "float"
 
-    match_object = re.match(r'^\[\".*\"\]$',value,flags=0)
+    match_object = re.match(r'^\[\".*\"\]$', value, flags=0)
     if match_object:
         return "literal-list"
 
-    match_object = re.match(r'^\"[^\"]*\"$',value,flags=0) or re.match(r'^\'[^\']*\'$',value,flags=0)
+    double_quote_regex = r'^\"[^\"]*\"$'
+    match_object = re.match(double_quote_regex, value, flags=0)
+    if match_object:
+        return "str"
+
+    single_quote_regex = r'^\"[^\"]*\"$'
+    match_object = re.match(single_quote_regex, value, flags=0)
     if match_object:
         return "str"
 
     return "reference"
 
-"Parses a string into a list"
 def parse_as_list(string):
+    """Parses a string into a list"""
     try:
         return ast.literal_eval(string)
     except ValueError:
@@ -381,17 +395,17 @@ def parse_as_list(string):
         raise SelmaParseException(
             "Unknown exception when parsing list from string '%s'" % string)
 
-"Parses a string into a number"
-def parse_as_number(operator,string):
+def parse_as_number(operator, string):
+    """Parses a string into a number"""
     try:
         return float(string)
     except:
         raise SelmaParseException(
             "operator %s must be used with a numeric value (not %s)"
-            % (operator,string))
+            % (operator, string))
 
-"Returns whichever object holds child variables."
 def get_var_holder(obj):
+    """Returns whichever object holds child variables."""
 
     obj_type = obj.__class__.__name__
 
@@ -403,22 +417,23 @@ def get_var_holder(obj):
         raise SelmaParseException(
             "Object of type %s can't hold variables!" % obj_type)
 
-"Adds a new entry into a variable holding dict"
 def add_variable_to_dict(dictionary, dictionary_name, variable_name, default_value):
+    """Adds a new entry into a variable holding dict"""
 
     if dictionary.__class__.__name__ != "dict":
         raise SelmaParseException(
             "Can only create variables on dict type objects but %s is of type '%s'"
-            % (var_name, var_type))
+            % (variable_name, dictionary.__class__.__name__))
     if variable_name.__class__.__name__ != "str":
         raise SelmaParseException("Name of variable must be a string!")
     if dictionary_name != "var":
         raise SelmaParseException(
             "You can only create custom variables in the 'var' dictionaries (You tried %s)"
             % dictionary_name)
+
     dictionary[variable_name] = default_value
 
 
-"Exception to use for parsing errors"
 class SelmaParseException(Exception):
+    """Exception to use for parsing errors"""
     pass

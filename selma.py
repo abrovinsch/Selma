@@ -356,13 +356,24 @@ class SelmaStorySimulation:
             for line in picked_card.roles[role]:
                 condition_statements.append(selma_parser.SelmaStatement(self.roles[role], line))
 
-        effect_statements = list()
+        effect_statements = {}
 
         # Execute the effects of the card
         for effect in picked_card.effects:
             try:
-                statement = selma_parser.execute_effect(self, effect)
-                effect_statements.append(statement)
+                statement = selma_parser.SelmaStatement(self,effect)
+                val_before = statement.var_holder[statement.var_name]
+                selma_parser.execute_statement(statement)
+                val_after = statement.var_holder[statement.var_name]
+
+                delta = 1.0
+                if val_before == val_after:
+                    delta = 0.0
+                elif statement.var_type == "float":
+                    delta = val_before - val_after
+
+                effect_statements[statement] = delta
+
             except Exception as exception:
                 print("Error while executing effect '%s' on card '%s'"
                       % (effect, picked_card_string))
@@ -422,37 +433,53 @@ class SelmaEvent:
                  roles,
                  previous_events,
                  event_id=0):
+
         self.event_name = event_card.name
         self.event_id = event_id
         self.roles = {}
         self.subject = 0
         self.object = 0
 
+        # We save a record of who played what role in this event
         self.set_roles(roles)
 
         self.causing_events = list()
         self.values_affecting = list()
 
+        # Go through every conditional statement which allowed
+        # this event to be executed and all values it depended on.
+        # Then find any previous events, which also edited that value.
+        # Those events may be considered causing events.
         for condition in conditions:
             if not condition.global_var_name in self.values_affecting:
                 self.values_affecting.append(condition.global_var_name)
 
                 last_event_modifying_value = 0
-                if condition.argument_type == "str":
+
+                # When it comes to lists and strings, OR numbers which
+                # must have a precise value, only the latest edit
+                # of the value is considered to be causing this event
+                if condition.argument_type == "str" or condition.argument_type == "list" or condition.operator == selma_parser.OPERATOR["value-equals"]:
                     for prev_event in previous_events:
                         if condition.global_var_name in prev_event.values_modified:
                             last_event_modifying_value = prev_event
                     if last_event_modifying_value:
                         self.causing_events.append(last_event_modifying_value)
+
+                # When it comes to numbers, every event editing the value
+                # Is considered as causing this event
                 else:
                     for prev_event in previous_events:
                         if condition.global_var_name in prev_event.values_modified:
+                            current_val = condition.var_holder[condition.var_name]
+                            prev_event_change = prev_event.values_modified[condition.global_var_name]
+                            
                             self.causing_events.append(prev_event)
 
-        self.values_modified = list()
+        self.values_modified = {}
         for effect in effects:
             if not effect.global_var_name in self.values_modified:
-                self.values_modified.append(effect.global_var_name)
+                self.values_modified[effect.global_var_name] = effects[effect]
 
     def __str__(self):
         return "EVENT %s: '%s'" % (self.event_id, self.as_sentence())

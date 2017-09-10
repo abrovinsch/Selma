@@ -62,7 +62,7 @@ class SelmaStatement:
         line = line.strip()
 
         # Search for a statement pattern
-        match_object = re.match(r'(\S+)\s+(\S+)\s+(.*)', line, flags=0)
+        match_object = re.match(r'(\S+)\s+(\S+)\s+(.+)', line, flags=0)
         if not match_object:
             raise SelmaParseException("invalid syntax '%s'" % line)
         matches = match_object.groups()

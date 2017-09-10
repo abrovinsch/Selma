@@ -240,7 +240,10 @@ def execute_effect(scope_object, line_string):
         if statement.var_type == "list":
             for item in statement.get_var_value():
                 if "var" in item.__dict__:
-                    item.var[statement.argument] = default_value
+                    add_variable_to_dict(item.var,
+                                         "var",
+                                         statement.argument,
+                                         default_value=default_value)
                 else:
                     raise SelmaParseException(
                         """Cannot create variables on %s becuase
@@ -251,7 +254,10 @@ def execute_effect(scope_object, line_string):
             for item_name in statement.get_var_value():
                 item = statement.get_var_value()[item_name]
                 if "var" in item.__dict__:
-                    item.var[statement.argument] = default_value
+                    add_variable_to_dict(item.var,
+                                         "var",
+                                         statement.argument,
+                                         default_value=default_value)
                 else:
                     raise SelmaParseException(
                         """Cannot create variables on %s
@@ -460,10 +466,14 @@ def add_variable_to_dict(dictionary,
                          default_value):
     """Adds a new entry into a variable holding dict"""
 
+    if not variable_name:
+        raise SelmaParseException("Name of variable must be longer than 0!")
+
+    is_allowed_variable_name(variable_name)
+
     if dictionary.__class__.__name__ != "dict":
         raise SelmaParseException(
-            """Can only create variables on
-            dict type objects but %s is of type '%s'"""
+            """Can only create variables on dict type objects but %s is of type '%s'"""
             % (variable_name, dictionary.__class__.__name__))
 
     if variable_name.__class__.__name__ != "str":
@@ -477,6 +487,21 @@ def add_variable_to_dict(dictionary,
 
     dictionary[variable_name] = default_value
 
+
+def is_allowed_variable_name(name):
+    """Returns whether name is an allowed name of a variable"""
+    numbers = "0123456789"
+    for num in numbers:
+        if name.startswith(num):
+            raise SelmaParseException("Variable names may not start with numbers (%s)"
+                                       % num)
+
+    not_allowed_characters = " \n\"\'-+/*><[]{}()´–§#:;=|^$"
+    for character in not_allowed_characters:
+        if character in name:
+            raise SelmaParseException("Illegal character '%s' in variable name: '%s'"
+                                      % (character, name))
+    return True
 
 class SelmaParseException(Exception):
     """Exception to use for parsing errors"""

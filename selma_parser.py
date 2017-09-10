@@ -136,9 +136,12 @@ class SelmaStatement:
 
 def execute_effect(scope_object, line_string):
     """Execute the effect in 'line' on the object 'obj'"""
-
     statement = SelmaStatement(scope_object, line_string)
+    execute_statement(statement)
+    return statement
 
+def execute_statement(statement):
+    """Execute the statement"""
     # Do a diffent thing depending on the operator
     if statement.operator == OPERATOR["assign-value"]:
         if statement.argument_type == "float" or statement.argument_type == "int":
@@ -280,8 +283,6 @@ def execute_effect(scope_object, line_string):
 
     else:
         raise SelmaParseException("Undefined operator '%s'" % statement.operator)
-
-    return statement
 
 def evaluate_condition(obj, line):
     """Return true if the statement in 'line' is true on object 'obj'"""

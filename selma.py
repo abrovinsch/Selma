@@ -483,6 +483,30 @@ class SelmaEvent:
                                     event_tuple = (prev_event, prev_event_change)
                                     self.causing_events.append(event_tuple)
 
+        # We weight the causation by how big the differnce was
+        # Example: if one event added 50 to happiness and
+        # another one only 5, the weight of the first event will be
+        # 10x as big
+
+        total_change_of_val = {}
+        weighted_causation_tuples = list()
+        for condition in conditions:
+            total_change_of_val[condition.global_var_name] = 0
+
+            for event_tuple in self.causing_events:
+                event, strength = event_tuple
+                if condition.global_var_name in event.values_modified:
+                    total_change_of_val[condition.global_var_name] += abs(strength)
+
+            for event_tuple in self.causing_events:
+                event, strength = event_tuple
+                if total_change_of_val[condition.global_var_name] and strength:
+                    strength = strength / total_change_of_val[condition.global_var_name]
+                    new_event_tuple = event, abs(strength)
+                    weighted_causation_tuples.append(new_event_tuple)
+
+        self.causing_events = weighted_causation_tuples
+
         self.values_modified = {}
         for effect in effects:
             if not effect.global_var_name in self.values_modified:

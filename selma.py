@@ -370,7 +370,7 @@ class SelmaStorySimulation:
                 if val_before == val_after:
                     delta = 0.0
                 elif statement.var_type == "float":
-                    delta = val_before - val_after
+                    delta = val_after - val_before
 
                 effect_statements[statement] = delta
 
@@ -474,13 +474,13 @@ class SelmaEvent:
                             current_val = condition.var_holder[condition.var_name]
                             prev_event_change = prev_event.values_modified[condition.global_var_name]
 
-                            if condition.argument == selma_parser.OPERATOR["greater-than-or-equal"] or condition.argument == selma_parser.OPERATOR["greater-than"]:
+                            if condition.operator == selma_parser.OPERATOR["greater-than-or-equal"] or condition.operator == selma_parser.OPERATOR["greater-than"]:
                                 if prev_event_change > 0:
                                     self.causing_events.append(prev_event)
-                            if condition.argument == selma_parser.OPERATOR["lesser-than-or-equal"] or condition.argument == selma_parser.OPERATOR["lesser-than"]:
+                            elif condition.operator == selma_parser.OPERATOR["lesser-than-or-equal"] or condition.operator == selma_parser.OPERATOR["lesser-than"]:
                                 if prev_event_change < 0:
                                     self.causing_events.append(prev_event)
-
+                                
 
         self.values_modified = {}
         for effect in effects:

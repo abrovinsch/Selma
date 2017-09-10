@@ -459,7 +459,7 @@ class SelmaEvent:
                 # When it comes to lists and strings, OR numbers which
                 # must have a precise value, only the latest edit
                 # of the value is considered to be causing this event
-                if condition.argument_type == "str" or condition.argument_type == "list" or condition.operator == selma_parser.OPERATOR["value-equals"]:
+                if condition.argument_type == "str" or condition.argument_type == "list" or condition.operator == selma_parser.OPERATOR["value-equals"]  or condition.operator == selma_parser.OPERATOR["value-not-equals"]:
                     for prev_event in previous_events:
                         if condition.global_var_name in prev_event.values_modified:
                             last_event_modifying_value = prev_event
@@ -473,8 +473,14 @@ class SelmaEvent:
                         if condition.global_var_name in prev_event.values_modified:
                             current_val = condition.var_holder[condition.var_name]
                             prev_event_change = prev_event.values_modified[condition.global_var_name]
-                            
-                            self.causing_events.append(prev_event)
+
+                            if condition.argument == selma_parser.OPERATOR["greater-than-or-equal"] or condition.argument == selma_parser.OPERATOR["greater-than"]:
+                                if prev_event_change > 0:
+                                    self.causing_events.append(prev_event)
+                            if condition.argument == selma_parser.OPERATOR["lesser-than-or-equal"] or condition.argument == selma_parser.OPERATOR["lesser-than"]:
+                                if prev_event_change < 0:
+                                    self.causing_events.append(prev_event)
+
 
         self.values_modified = {}
         for effect in effects:

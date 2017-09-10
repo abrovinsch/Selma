@@ -361,7 +361,7 @@ class SelmaStorySimulation:
         # Execute the effects of the card
         for effect in picked_card.effects:
             try:
-                statement = selma_parser.SelmaStatement(self,effect)
+                statement = selma_parser.SelmaStatement(self, effect)
                 val_before = statement.var_holder[statement.var_name]
                 selma_parser.execute_statement(statement)
                 val_after = statement.var_holder[statement.var_name]
@@ -464,23 +464,24 @@ class SelmaEvent:
                         if condition.global_var_name in prev_event.values_modified:
                             last_event_modifying_value = prev_event
                     if last_event_modifying_value:
-                        self.causing_events.append(last_event_modifying_value)
+                        event_tuple = (last_event_modifying_value, 1)
+                        self.causing_events.append(event_tuple)
 
                 # When it comes to numbers, every event editing the value
                 # Is considered as causing this event
                 else:
                     for prev_event in previous_events:
                         if condition.global_var_name in prev_event.values_modified:
-                            current_val = condition.var_holder[condition.var_name]
                             prev_event_change = prev_event.values_modified[condition.global_var_name]
 
                             if condition.operator == selma_parser.OPERATOR["greater-than-or-equal"] or condition.operator == selma_parser.OPERATOR["greater-than"]:
                                 if prev_event_change > 0:
-                                    self.causing_events.append(prev_event)
+                                    event_tuple = (prev_event, prev_event_change)
+                                    self.causing_events.append(event_tuple)
                             elif condition.operator == selma_parser.OPERATOR["lesser-than-or-equal"] or condition.operator == selma_parser.OPERATOR["lesser-than"]:
                                 if prev_event_change < 0:
-                                    self.causing_events.append(prev_event)
-                                
+                                    event_tuple = (prev_event, prev_event_change)
+                                    self.causing_events.append(event_tuple)
 
         self.values_modified = {}
         for effect in effects:

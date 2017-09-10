@@ -105,11 +105,15 @@ class SelmaStatement:
                                                    self.global_var_name)
         elif calling_object.__class__.__name__ == "SelmaStorySimulation":
             if self.global_var_name.startswith("roles"):
+
                 role_name = self.global_var_name[6:]
                 role_name = role_name[:role_name.index(".")]
 
                 character_name = calling_object.roles[role_name].name
-                self.global_var_name = "cast.%s.%s" % (character_name,self.var_name)
+                var_name = self.var_name
+                if "var." in self.global_var_name:
+                    var_name = "var." + var_name
+                self.global_var_name = "cast.%s.%s" % (character_name,var_name)
 
         if self.var_type == "list":
             self.global_var_name += ".%s" % self.argument

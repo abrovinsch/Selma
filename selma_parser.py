@@ -111,6 +111,9 @@ class SelmaStatement:
                 character_name = calling_object.roles[role_name].name
                 self.global_var_name = "cast.%s.%s" % (character_name,self.var_name)
 
+        if self.var_type == "list":
+            self.global_var_name += ".%s" % self.argument
+
     def get_var_value(self):
         """Returns the value of the variable"""
         return self.var_holder[self.var_name]
@@ -494,7 +497,7 @@ def is_allowed_variable_name(name):
     for num in numbers:
         if name.startswith(num):
             raise SelmaParseException("Variable names may not start with numbers (%s)"
-                                       % num)
+                                      % num)
 
     not_allowed_characters = " \n\"\'-+/*><[]{}()´–§#:;=|^$"
     for character in not_allowed_characters:

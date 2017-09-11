@@ -11,8 +11,9 @@ involves characters and has requirements of the world
 state to be picked.
 """
 import random
-import selma_parser
+import operator
 import selma_file_reader
+import selma_parser as parser
 
 class SelmaCharacter:
     """
@@ -103,8 +104,7 @@ class SelmaEventCard:
 
         self.roles = {}
         if role_tuples:
-            for role_tuple in role_tuples:
-                role_name, role_conditions = role_tuple
+            for role_name, role_conditions in role_tuples:
                 if role_name:
                     self.roles[role_name] = role_conditions
 
@@ -145,12 +145,12 @@ class SelmaEventCard:
                 passes_all_conditions = True
                 for condition in conditions:
                     try:
-                        evaluation_result = selma_parser.evaluate_condition(obj.cast[candidate],
-                                                                            condition)
+                        evaluation_result = parser.evaluate_condition(obj.cast[candidate],
+                                                                      condition)
                     except Exception as exception:
                         print("Error while testing condition '%s' on card '%s'"
                               % (condition, card_name))
-                        raise selma_parser.SelmaParseException(exception)
+                        raise parser.SelmaParseException(exception)
 
                     # If this guy doesn't cut it, ignore him and try the next one
                     if not evaluation_result:
@@ -170,7 +170,7 @@ class SelmaEventCard:
 
         # Test every condition on the card itself
         for condition in self.conditions:
-            if not selma_parser.evaluate_condition(obj, condition):
+            if not parser.evaluate_condition(obj, condition):
                 return False
 
         return True
@@ -222,13 +222,13 @@ class SelmaStorySimulation:
 
         self.debug_mode = debug_mode
         self.allow_output = allow_output
-        selma_parser.allow_print_out = allow_output
+        parser.allow_print_out = allow_output
 
         self.past_events = list()
         self.steps_count = 0
 
         if self.allow_output:
-            print("\n<------SELMA STORY SIMULATION------>\n")
+            print("\n👵🏻---👵🏻--SELMA STORY SIMULATION--👵🏻---👵🏻\n")
 
     def load_from_file(self, path):
         """Loads cards and characters into this simulation from a .selma file"""
@@ -285,9 +285,9 @@ class SelmaStorySimulation:
         # Execute the init "script" to set variables etc.
         for effect in init_effects:
             try:
-                selma_parser.execute_effect(self.cast[name], effect)
+                parser.execute_effect(self.cast[name], effect)
             except Exception as exception:
-                raise selma_parser.SelmaParseException(exception)
+                raise parser.SelmaParseException(exception)
 
         # Recreate the character list
         self.all_character_names = list(self.cast.keys())
@@ -299,8 +299,6 @@ class SelmaStorySimulation:
         if self.debug_mode:
             print("<Simstep %s>" % self.steps_count)
 
-        have_found_card = False
-
         # If there is a "start" card, execute it's effects before
         # the simulation begins, and then remove it
         start_card_name = "start"
@@ -308,10 +306,10 @@ class SelmaStorySimulation:
             # Execute the effects of the start card
             for effect in self.event_cards[start_card_name].effects:
                 try:
-                    selma_parser.execute_effect(self, effect)
+                    parser.execute_effect(self, effect)
                 except Exception as exception:
                     print("Error in start card")
-                    raise selma_parser.SelmaParseException(exception)
+                    raise parser.SelmaParseException(exception)
 
             # Add the start cards "next"s to the draw deck
             for card_name in self.event_cards[start_card_name].next_cards:
@@ -320,9 +318,10 @@ class SelmaStorySimulation:
             self.all_card_names.remove(start_card_name)
 
         # Take a new card until we have found one that fulfill the condtions
+        have_found_card = False
         while not have_found_card:
 
-            # Check if we need to add new cards to the draw deck
+            # Add any cards needed to fill the draw deck
             while len(self.draw_deck) < self.draw_deck_size:
                 self.draw_deck.append("#")
 
@@ -343,41 +342,42 @@ class SelmaStorySimulation:
                 self.draw_deck.remove(picked_card_string)
 
         # Add the next cards to the draw deck
-        for card_name in picked_card.next_cards:
-            self.add_card_to_draw_deck(card_name)
+        for next_card_name in picked_card.next_cards:
+            self.add_card_to_draw_deck(next_card_name)
 
         # Save all the requirements of this card in a list
         # so we can use it to determine which cards caused event
-        condition_statements = list()
-        for conditional_statement in picked_card.conditions:
-            condition_statements.append(selma_parser.SelmaStatement(self, conditional_statement))
+        requirements = []
+        for req in picked_card.conditions:
+            requirements.append(parser.SelmaStatement(self, conditional_statement))
 
         for role in picked_card.roles:
             for line in picked_card.roles[role]:
-                condition_statements.append(selma_parser.SelmaStatement(self.roles[role], line))
+                requirements.append(parser.SelmaStatement(self.roles[role], line))
 
         effect_statements = {}
 
         # Execute the effects of the card
         for effect in picked_card.effects:
             try:
-                statement = selma_parser.SelmaStatement(self, effect)
+                statement = parser.SelmaStatement(self, effect)
                 val_before = statement.var_holder[statement.var_name]
-                selma_parser.execute_statement(statement)
+                parser.execute_statement(statement)
                 val_after = statement.var_holder[statement.var_name]
 
-                delta = 1.0
-                if val_before == val_after:
-                    delta = 0.0
-                elif statement.var_type == "float":
+                if statement.var_type == "float":
                     delta = val_after - val_before
+                elif val_before == val_after:
+                    delta = 0.0
+                else:
+                    delta = 1.0
 
                 effect_statements[statement] = delta
 
             except Exception as exception:
                 print("Error while executing effect '%s' on card '%s'"
                       % (effect, picked_card_string))
-                raise selma_parser.SelmaParseException(exception)
+                raise parser.SelmaParseException(exception)
 
         if self.debug_mode:
             print("Picked card: '%s'" % picked_card.name)
@@ -386,10 +386,10 @@ class SelmaStorySimulation:
             print("Draw deck: %s\n" % self.draw_deck)
 
         # Log this event
-        event = SelmaEvent(event_card=picked_card,
+        event = SelmaEvent(event_name=picked_card.name,
                            roles=self.roles,
                            effects=effect_statements,
-                           conditions=condition_statements,
+                           requirements=requirements,
                            previous_events=self.past_events,
                            event_id=len(self.past_events))
 
@@ -411,11 +411,11 @@ class SelmaStorySimulation:
 
     def execute_effect(self, effect):
         """Execute an effect on this scope"""
-        selma_parser.execute_effect(self, effect)
+        parser.execute_effect(self, effect)
 
     def evaluate_condition(self, condition):
         """Evaluates a condition on this scope, returns True/False"""
-        return selma_parser.evaluate_condition(self, condition)
+        return parser.evaluate_condition(self, condition)
 
 
 class SelmaException(Exception):
@@ -427,61 +427,74 @@ class SelmaEvent:
     """This class contains information about an event which has occured"""
 
     def __init__(self,
-                 event_card,
+                 event_name,
                  effects,
-                 conditions,
+                 requirements,
                  roles,
                  previous_events,
-                 event_id=0):
+                 event_id=-1):
 
-        self.event_name = event_card.name
+        self.event_name = event_name
         self.event_id = event_id
-        self.roles = {}
         self.subject = 0
         self.object = 0
+        self.causing_events = []
+        self.values_affecting = []
 
         # We save a record of who played what role in this event
-        self.set_roles(roles)
+        self.roles = {}
+        for role in roles:
+            self.roles[role] = roles[role].name
 
-        self.causing_events = list()
-        self.values_affecting = list()
+        if self.roles:
+            self.subject = self.roles[list(self.roles.keys())[0]]
+        if len(self.roles) > 1:
+            self.object = self.roles[list(self.roles.keys())[1]]
 
         # Go through every conditional statement which allowed
         # this event to be executed and all values it depended on.
         # Then find any previous events, which also edited that value.
         # Those events may be considered causing events.
-        for condition in conditions:
-            if not condition.global_var_name in self.values_affecting:
-                self.values_affecting.append(condition.global_var_name)
+        causing_events_raw = []
+        for requirement in requirements:
+            if not requirement.full_var_name in self.values_affecting:
+                self.values_affecting.append(requirement.full_var_name)
 
                 last_event_modifying_value = 0
 
                 # When it comes to lists and strings, OR numbers which
                 # must have a precise value, only the latest edit
                 # of the value is considered to be causing this event
-                if condition.argument_type == "str" or condition.argument_type == "list" or condition.operator == selma_parser.OPERATOR["value-equals"]  or condition.operator == selma_parser.OPERATOR["value-not-equals"]:
-                    for prev_event in previous_events:
-                        if condition.global_var_name in prev_event.values_modified:
-                            last_event_modifying_value = prev_event
-                    if last_event_modifying_value:
-                        event_tuple = (last_event_modifying_value, 1)
-                        self.causing_events.append(event_tuple)
 
-                # When it comes to numbers, every event editing the value
-                # Is considered as causing this event
+                if (requirement.argument_type == parser.TYPE_STRING or
+                        requirement.argument_type == parser.TYPE_LIST or
+                        requirement.operator == parser.EQUAL or
+                        requirement.operator == parser.NOT_EQUAL):
+
+                    # Note: we reverse the list here so that newest
+                    # items comes first, because we are looking for
+                    # NEWEST event
+                    for event in reversed(previous_events):
+                        if requirement.full_var_name in event.values_modified:
+                            self.causing_events.append((event,1))
+                            break
+
+                # When it comes to numbers, we treat cards that have to be as
+                # large as possible or
                 else:
-                    for prev_event in previous_events:
-                        if condition.global_var_name in prev_event.values_modified:
-                            prev_event_change = prev_event.values_modified[condition.global_var_name]
+                    for event in previous_events:
+                        if requirement.full_var_name in event.values_modified:
 
-                            if condition.operator == selma_parser.OPERATOR["greater-than-or-equal"] or condition.operator == selma_parser.OPERATOR["greater-than"]:
-                                if prev_event_change > 0:
-                                    event_tuple = (prev_event, prev_event_change)
-                                    self.causing_events.append(event_tuple)
-                            elif condition.operator == selma_parser.OPERATOR["lesser-than-or-equal"] or condition.operator == selma_parser.OPERATOR["lesser-than"]:
-                                if prev_event_change < 0:
-                                    event_tuple = (prev_event, prev_event_change)
-                                    self.causing_events.append(event_tuple)
+                            delta = event.values_modified[requirement.full_var_name]
+
+                            if (requirement.operator == parser.GREATER_EQUAL or
+                                    requirement.operator == parser.GREATER):
+                                if delta >= 0:
+                                    causing_events_raw.append((event, delta))
+                            elif (requirement.operator == parser.LESS_EQUAL or
+                                  requirement.operator == parser.LESS):
+                                if delta <= 0:
+                                    causing_events_raw.append((event, delta))
 
         # We weight the causation by how big the differnce was
         # Example: if one event added 50 to happiness and
@@ -489,28 +502,39 @@ class SelmaEvent:
         # 10x as big
 
         total_change_of_val = {}
-        weighted_causation_tuples = list()
-        for condition in conditions:
-            total_change_of_val[condition.global_var_name] = 0
+        causing_events_weighted = []
+        for requirement in requirements:
+            req_name = requirement.full_var_name
+            total_change_of_val[req_name] = 0
 
-            for event_tuple in self.causing_events:
-                event, strength = event_tuple
-                if condition.global_var_name in event.values_modified:
-                    total_change_of_val[condition.global_var_name] += abs(strength)
+            # First we calculate the value of all changes
+            # made to the value we are examining
+            for event, strength in causing_events_raw:
+                if requirement.full_var_name in event.values_modified:
+                    total_change_of_val[req_name] += abs(strength)
 
-            for event_tuple in self.causing_events:
-                event, strength = event_tuple
-                if total_change_of_val[condition.global_var_name] and strength:
-                    strength = strength / total_change_of_val[condition.global_var_name]
-                    new_event_tuple = event, abs(strength)
-                    weighted_causation_tuples.append(new_event_tuple)
+            # Then we divide the strength of each causing event
+            # with the total of all changes to produce a
+            # value from 0 to 1.
+            for event, strength in causing_events_raw:
+                if (requirement.full_var_name in event.values_modified and
+                        total_change_of_val[req_name] and
+                        strength):
+                    weighted_strength = abs(strength) / total_change_of_val[req_name]
+                    weighted_strength /= len(requirements)
+                    causing_events_weighted.append((event,weighted_strength))
 
-        self.causing_events = weighted_causation_tuples
+        # Finally we set the causing events to be the weighted version
+        # and sort them by descending size so it becomes easy
+        # for users to remove the least important events
+        self.causing_events += causing_events_weighted.copy()
+        self.causing_events.sort(key=operator.itemgetter(1))
+        self.causing_events.reverse()
 
         self.values_modified = {}
         for effect in effects:
-            if not effect.global_var_name in self.values_modified:
-                self.values_modified[effect.global_var_name] = effects[effect]
+            if not effect.full_var_name in self.values_modified:
+                self.values_modified[effect.full_var_name] = effects[effect]
 
     def __str__(self):
         return "EVENT %s: '%s'" % (self.event_id, self.as_sentence())
@@ -526,19 +550,6 @@ class SelmaEvent:
             return name
 
         return self.event_name
-
-    def set_roles(self, roles):
-        """Copy the the name of the roles
-        and the character into a new dictionary"""
-
-        for role in roles:
-            self.roles[role] = roles[role].name
-
-        if self.roles:
-            self.subject = self.roles[list(self.roles.keys())[0]]
-        if len(self.roles) > 1:
-            self.object = self.roles[list(self.roles.keys())[1]]
-
 
 def random_item_from_list(list_in):
     """Returns a random item from any list"""

@@ -14,41 +14,57 @@ import re
 
 #This defines the operators
 OPERATOR = {
-    "append":"add",
-    "append-list":"add-these",
-    "remove-from-list":"remove",
-    "remove-from-list-many":"remove-these",
+    'append':'add',
+    'append-list':'add-these',
+    'remove-from-list':'remove',
+    'remove-from-list-many':'remove-these',
 
-    "assign-value":"=",
-    "value-equals":"=",
+    'assign-value':'=',
+    'value-equals':'=',
 
-    "add-to":"+=",
-    "subtract-from":"-=",
+    'add-to':'+=',
+    'subtract-from':'-=',
 
-    "multiply-numeric":"*=",
-    "divide-numeric":"/=",
+    'multiply-numeric':'*=',
+    'divide-numeric':'/=',
 
-    "value-not-equals":"!=",
-    "greater-than":">",
-    "lesser-than":"<",
-    "greater-than-or-equal":">=",
-    "lesser-than-or-equal":"<=",
+    'value-not-equals':'!=',
+    'greater-than':'>',
+    'lesser-than':'<',
+    'greater-than-or-equal':'>=',
+    'lesser-than-or-equal':'<=',
 
-    "list-contains":"has",
-    "list-doesnt-contain":"has-not",
+    'list-contains':'has',
+    'list-doesnt-contain':'has-not',
 
-    "print-value":"print",
+    'print-value':'print',
 
-    "define-numeric-variable":"create-num",
-    "define-string-variable":"create-string",
-    "define-list-variable":"create-list",
+    'define-numeric-variable':'create-num',
+    'define-string-variable':'create-string',
+    'define-list-variable':'create-list',
 
-    "define-number-on-all":"create-num-all",
-    "define-string-on-all":"create-string-all",
-    "define-list-on-all":"create-list-all"
+    'define-number-on-all':'create-num-all',
+    'define-string-on-all':'create-string-all',
+    'define-list-on-all':'create-list-all'
 }
 
-ERROR_NO_SUCH_VARIABLE = "There is no variable named '%s' on object %s"
+# Save shorthands to the most used operators for sanity
+GREATER = OPERATOR['greater-than']
+GREATER_EQUAL = OPERATOR['greater-than-or-equal']
+LESS = OPERATOR['lesser-than']
+LESS_EQUAL = OPERATOR['lesser-than-or-equal']
+EQUAL = OPERATOR['value-equals']
+NOT_EQUAL = OPERATOR['value-not-equals']
+
+# Shorthands for types
+TYPE_STRING = 'str'
+TYPE_LIST = 'list'
+TYPE_FLOAT = 'float'
+TYPE_INT = 'int'
+TYPE_REF = 'reference'
+TYPE_LITERAL_LIST = 'literal-list'
+
+ERROR_NO_SUCH_VARIABLE = 'There is no variable named '%s' on object %s'
 ALLOW_PRINT_OUT = True
 
 class SelmaStatement:
@@ -90,33 +106,33 @@ class SelmaStatement:
         self.argument = matches[2]
         self.argument_type = get_type_from_literal(self.argument)
 
-        if self.argument_type == "reference":
+        if self.argument_type == TYPE_REF:
             self.argument = get_value_from_reference(calling_object, self.argument)
             self.argument_type = self.argument.__class__.__name__
 
         # If the argument is a string, we need to remove the quotes
-        elif self.argument_type == "str":
+        elif self.argument_type == TYPE_STRING:
             self.argument = self.argument[1:-1]
 
         # Save the global reference name of the variable
-        self.global_var_name = matches[0]
-        if calling_object.__class__.__name__ == "SelmaCharacter":
-            self.global_var_name = "cast.%s.%s" % (calling_object.name,
-                                                   self.global_var_name)
+        self.full_var_name = matches[0]
+        if calling_object.__class__.__name__ == 'SelmaCharacter':
+            self.full_var_name = 'cast.%s.%s' % (calling_object.name,
+                                                   self.full_var_name)
         elif calling_object.__class__.__name__ == "SelmaStorySimulation":
-            if self.global_var_name.startswith("roles"):
+            if self.full_var_name.startswith("roles"):
 
-                role_name = self.global_var_name[6:]
+                role_name = self.full_var_name[6:]
                 role_name = role_name[:role_name.index(".")]
 
                 character_name = calling_object.roles[role_name].name
                 var_name = self.var_name
-                if "var." in self.global_var_name:
+                if "var." in self.full_var_name:
                     var_name = "var." + var_name
-                self.global_var_name = "cast.%s.%s" % (character_name,var_name)
+                self.full_var_name = "cast.%s.%s" % (character_name, var_name)
 
-        if self.var_type == "list":
-            self.global_var_name += ".%s" % self.argument
+        if self.var_type == TYPE_LIST:
+            self.full_var_name += ".%s" % self.argument
 
     def get_var_value(self):
         """Returns the value of the variable"""
@@ -148,15 +164,19 @@ def execute_statement(statement):
     """Execute the statement"""
     # Do a diffent thing depending on the operator
     if statement.operator == OPERATOR["assign-value"]:
-        if statement.argument_type == "float" or statement.argument_type == "int":
-            statement.set_var_to(parse_as_number(statement.operator, statement.argument))
-        elif statement.var_type == "list" and statement.argument_type == "literal-list":
+        if (statement.argument_type == TYPE_FLOAT or
+                statement.argument_type == TYPE_INT):
+
+            statement.set_var_to(parse_as_number(statement.operator,
+                                                 statement.argument))
+        elif (statement.var_type == TYPE_LIST and
+              statement.argument_type == TYPE_LITERAL_LIST):
             statement.set_var_to(parse_as_list(statement.argument))
         else:
             statement.set_var_to(statement.argument)
 
     elif statement.operator == OPERATOR["append"]:
-        if statement.var_type == "list":
+        if statement.var_type == TYPE_LIST:
             statement.append(statement.argument)
         else:
             raise parse_error_wrong_type(statement.operator,
@@ -164,11 +184,11 @@ def execute_statement(statement):
                                          statement.var_name)
 
     elif statement.operator == OPERATOR["append-list"]:
-        if statement.argument_type == "literal-list":
+        if statement.argument_type == TYPE_LITERAL_LIST:
             list_to_append = parse_as_list(statement.argument)
             for item in list_to_append:
                 statement.append(item)
-        elif statement.argument_type == "list":
+        elif statement.argument_type == TYPE_LIST:
             list_to_append = statement.argument
             for item in list_to_append:
                 statement.append(item)
@@ -178,7 +198,7 @@ def execute_statement(statement):
                                          statement.var_name)
 
     elif statement.operator == OPERATOR["remove-from-list"]:
-        if statement.var_type == "list":
+        if statement.var_type == TYPE_LIST:
             if statement.argument in statement.get_var_value():
                 statement.remove(statement.argument)
         else:
@@ -187,7 +207,7 @@ def execute_statement(statement):
                                          statement.var_name)
 
     elif statement.operator == OPERATOR["remove-from-list-many"]:
-        if statement.var_type == "list":
+        if statement.var_type == TYPE_LIST:
             list_to_remove = parse_as_list(statement.argument)
             for item in list_to_remove:
                 if item in statement.get_var_value():
@@ -198,10 +218,11 @@ def execute_statement(statement):
                                          statement.var_name)
 
     elif statement.operator == OPERATOR["add-to"]:
-        if statement.var_type == "str":
+        if statement.var_type == TYPE_STRING:
             statement.var_holder[statement.var_name] += statement.argument
         else:
-            statement.add(parse_as_number(statement.operator, statement.argument))
+            statement.add(parse_as_number(statement.operator,
+                                          statement.argument))
 
     elif statement.operator == OPERATOR["subtract-from"]:
         statement.var_holder[statement.var_name] -= parse_as_number(statement.operator,
@@ -238,7 +259,9 @@ def execute_statement(statement):
                              statement.argument,
                              default_value="")
 
-    elif statement.operator == OPERATOR["define-number-on-all"] or statement.operator == OPERATOR["define-string-on-all"] or statement.operator == OPERATOR["define-list-on-all"]:
+    elif (statement.operator == OPERATOR["define-number-on-all"] or
+          statement.operator == OPERATOR["define-string-on-all"] or
+          statement.operator == OPERATOR["define-list-on-all"]):
 
         if statement.operator == OPERATOR["define-string-on-all"]:
             default_value = ""
@@ -247,7 +270,7 @@ def execute_statement(statement):
         else:
             default_value = 0
 
-        if statement.var_type == "list":
+        if statement.var_type == TYPE_LIST:
             for item in statement.get_var_value():
                 if "var" in item.__dict__:
                     add_variable_to_dict(item.var,
@@ -286,7 +309,8 @@ def execute_statement(statement):
             % statement.operator)
 
     else:
-        raise SelmaParseException("Undefined operator '%s'" % statement.operator)
+        raise SelmaParseException("Undefined operator '%s'"
+                                  % statement.operator)
 
 def evaluate_condition(obj, line):
     """Return true if the statement in 'line' is true on object 'obj'"""
@@ -296,10 +320,10 @@ def evaluate_condition(obj, line):
     if statement.operator == OPERATOR["value-equals"]:
         if not statement.var_name in statement.var_holder:
             return False
-        if statement.argument_type == "int" or statement.argument_type == "float":
+        if statement.argument_type == TYPE_INT or statement.argument_type == TYPE_FLOAT:
             return statement.get_var_value() == parse_as_number(statement.operator,
                                                                 statement.argument)
-        if statement.var_type == "list":
+        if statement.var_type == TYPE_LIST:
             return statement.get_var_value() == parse_as_list(statement.argument)
 
         return statement.get_var_value() == statement.argument
@@ -307,10 +331,11 @@ def evaluate_condition(obj, line):
     if statement.operator == OPERATOR["value-not-equals"]:
         if not statement.var_name in statement.var_holder:
             return True
-        if statement.argument_type == "int" or statement.argument_type == "float":
+        if (statement.argument_type == TYPE_INT
+            or statement.argument_type == TYPE_FLOAT):
             return statement.get_var_value() != parse_as_number(statement.operator,
                                                                 statement.argument)
-        if statement.var_type == "list":
+        if statement.var_type == TYPE_LIST:
             return statement.get_var_value() != parse_as_list(statement.argument)
 
         return statement.get_var_value() != statement.argument
@@ -324,7 +349,7 @@ def evaluate_condition(obj, line):
                                                            statement.argument)
 
     if statement.operator == OPERATOR["greater-than-or-equal"]:
-        if statement.var_type == "int" or statement.var_type == "float":
+        if statement.var_type == TYPE_INT or statement.var_type == TYPE_FLOAT:
             return statement.get_var_value() >= parse_as_number(statement.operator,
                                                                 statement.argument)
 
@@ -333,10 +358,11 @@ def evaluate_condition(obj, line):
                                statement.var_name)
 
     if statement.operator == OPERATOR["lesser-than-or-equal"]:
-        return statement.get_var_value() <= parse_as_number(statement.operator, statement.argument)
+        return statement.get_var_value() <= parse_as_number(statement.operator,
+                                                            statement.argument)
 
     if statement.operator == OPERATOR["list-doesnt-contain"]:
-        if statement.var_type == "list":
+        if statement.var_type == TYPE_LIST:
             return not statement.argument in statement.get_var_value()
         else:
             parse_error_wrong_type(statement.operator,
@@ -344,7 +370,7 @@ def evaluate_condition(obj, line):
                                    statement.var_name)
 
     if statement.operator == OPERATOR["list-contains"]:
-        if statement.var_type == "list":
+        if statement.var_type == TYPE_LIST:
             return statement.argument in statement.get_var_value()
         else:
             parse_error_wrong_type(statement.operator,
@@ -386,7 +412,8 @@ def get_variable_reference(parent_object, string):
         rest_string = string[string.index(".")+1:]
 
     if "." in rest_string:
-        parent_object, var_name = get_variable_reference(parent_object, rest_string)
+        parent_object, var_name = get_variable_reference(parent_object,
+                                                         rest_string)
 
     return parent_object, var_name
 
@@ -417,23 +444,23 @@ def get_type_from_literal(value):
 
     match_object = re.match(r'^-?\d+\.?\d*$', value, flags=0)
     if match_object:
-        return "float"
+        return TYPE_FLOAT
 
     match_object = re.match(r'^\[\".*\"\]$', value, flags=0)
     if match_object:
-        return "literal-list"
+        return TYPE_LITERAL_LIST
 
     double_quote_regex = r'^\"[^\"]*\"$'
     match_object = re.match(double_quote_regex, value, flags=0)
     if match_object:
-        return "str"
+        return TYPE_STRING
 
     single_quote_regex = r'^\"[^\"]*\"$'
     match_object = re.match(single_quote_regex, value, flags=0)
     if match_object:
-        return "str"
+        return TYPE_STRING
 
-    return "reference"
+    return TYPE_REF
 
 def parse_as_list(string):
     """Parses a string into a list"""
@@ -481,15 +508,16 @@ def add_variable_to_dict(dictionary,
 
     if dictionary.__class__.__name__ != "dict":
         raise SelmaParseException(
-            """Can only create variables on dict type objects but %s is of type '%s'"""
+            """Can only create variables on dict type /
+            objects but %s is of type '%s'"""
             % (variable_name, dictionary.__class__.__name__))
 
-    if variable_name.__class__.__name__ != "str":
+    if variable_name.__class__.__name__ != TYPE_STRING:
         raise SelmaParseException("Name of variable must be a string!")
 
     if dictionary_name != "var":
         raise SelmaParseException(
-            """You can only create custom variables
+            """You can only create custom variables /
             in the 'var' dictionaries (You tried %s)"""
             % dictionary_name)
 
@@ -501,13 +529,15 @@ def is_allowed_variable_name(name):
     numbers = "0123456789"
     for num in numbers:
         if name.startswith(num):
-            raise SelmaParseException("Variable names may not start with numbers (%s)"
+            raise SelmaParseException("""Variable names may /
+                                      not start with numbers (%s)"""
                                       % num)
 
     not_allowed_characters = " \n\"\'-+/*><[]{}()´–§#:;=|^$"
     for character in not_allowed_characters:
         if character in name:
-            raise SelmaParseException("Illegal character '%s' in variable name: '%s'"
+            raise SelmaParseException("""Illegal character '%s' /
+                                      in variable name: '%s'"""
                                       % (character, name))
     return True
 

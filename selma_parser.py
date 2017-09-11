@@ -64,7 +64,7 @@ TYPE_INT = 'int'
 TYPE_REF = 'reference'
 TYPE_LITERAL_LIST = 'literal-list'
 
-ERROR_NO_SUCH_VARIABLE = 'There is no variable named '%s' on object %s'
+ERROR_NO_SUCH_VARIABLE = 'There is no variable named "%s" on object %s'
 ALLOW_PRINT_OUT = True
 
 class SelmaStatement:
@@ -74,7 +74,6 @@ class SelmaStatement:
         """Initializes a new SelmaStatement object by parsing"
         a line and grabbing references from the parent object"""
 
-        # Remove any unneccesary whitespace
         line = line.strip()
 
         # Search for a statement pattern
@@ -99,9 +98,8 @@ class SelmaStatement:
         # Get the operator and make sure it is defined
         self.operator = matches[1]
         if not self.operator in OPERATOR.values():
-            raise SelmaParseException("Unknown operator '%s' in line '%s'" % \
-                                        (self.operator, line))
-
+            raise SelmaParseException("Undefined operator '%s' in line '%s'"
+                                      % (self.operator, line))
         # Get the argument and it's type
         self.argument = matches[2]
         self.argument_type = get_type_from_literal(self.argument)
@@ -180,7 +178,7 @@ def execute_statement(statement):
             statement.append(statement.argument)
         else:
             raise parse_error_wrong_type(statement.operator,
-                                         statement.get_var_value().__class__.__name__,
+                                         statement.var_type,
                                          statement.var_name)
 
     elif statement.operator == OPERATOR["append-list"]:
@@ -251,7 +249,7 @@ def execute_statement(statement):
         add_variable_to_dict(statement.get_var_value(),
                              statement.var_name,
                              statement.argument,
-                             default_value=list())
+                             default_value=[])
 
     elif statement.operator == OPERATOR["define-string-variable"]:
         add_variable_to_dict(statement.get_var_value(),
@@ -266,7 +264,7 @@ def execute_statement(statement):
         if statement.operator == OPERATOR["define-string-on-all"]:
             default_value = ""
         elif statement.operator == OPERATOR["define-list-on-all"]:
-            default_value = list()
+            default_value = []
         else:
             default_value = 0
 
@@ -320,7 +318,8 @@ def evaluate_condition(obj, line):
     if statement.operator == OPERATOR["value-equals"]:
         if not statement.var_name in statement.var_holder:
             return False
-        if statement.argument_type == TYPE_INT or statement.argument_type == TYPE_FLOAT:
+        if (statement.argument_type == TYPE_INT or
+            statement.argument_type == TYPE_FLOAT):
             return statement.get_var_value() == parse_as_number(statement.operator,
                                                                 statement.argument)
         if statement.var_type == TYPE_LIST:

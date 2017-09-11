@@ -26,9 +26,9 @@ class SelmaCharacter:
         self.name = "no name"
         self.gender = ""
         self.age = 0
-        self.attributes = list()
-        self.personality = list()
-        self.inventory = list()
+        self.attributes = []
+        self.personality = []
+        self.inventory = []
         self.mood = "neutral"
         self.job = ""
         self.happiness = 0
@@ -88,17 +88,17 @@ class SelmaEventCard:
         if conditions:
             self.conditions = conditions.copy()
         else:
-            self.conditions = list()
+            self.conditions = []
 
         if effects:
             self.effects = effects.copy()
         else:
-            self.effects = list()
+            self.effects = []
 
         if next_cards:
             self.next_cards = next_cards.copy()
         else:
-            self.next_cards = list()
+            self.next_cards = []
 
         self.text_out = "#%s#" % name
 
@@ -122,7 +122,7 @@ class SelmaEventCard:
 
         # Pick a random character in the cast until
         # we find someone to fill the role
-        taken_characters = list()
+        taken_characters = []
 
         for role in self.roles:
 
@@ -205,26 +205,26 @@ class SelmaStorySimulation:
                  debug_mode=True,
                  allow_output=True):
         """This Initializes the object."""
-        self.draw_deck = list()
+        self.draw_deck = []
         self.event_cards = {}
 
-        self.all_card_names = list()
-        self.all_character_names = list()
+        self.all_card_names = []
+        self.all_character_names = []
 
         self.draw_deck_size = 5
 
-        self.attributes = list()
+        self.attributes = []
         self.var = {}
         self.cast = {}
         self.roles = {}
 
-        self.past_events = list()
+        self.past_events = []
 
         self.debug_mode = debug_mode
         self.allow_output = allow_output
         parser.allow_print_out = allow_output
 
-        self.past_events = list()
+        self.past_events = []
         self.steps_count = 0
 
         if self.allow_output:
@@ -261,7 +261,7 @@ class SelmaStorySimulation:
                                                 role_tuples)
 
         # Reset the list of all card names
-        self.all_card_names = list()
+        self.all_card_names = []
         for card_name in self.event_cards:
             for _ in range(0, amount):
                 self.all_card_names.append(card_name)
@@ -501,26 +501,26 @@ class SelmaEvent:
         # another one only 5, the weight of the first event will be
         # 10x as big
 
-        total_change_of_val = {}
+        change_sum = {}
         causing_events_weighted = []
         for requirement in requirements:
             req_name = requirement.full_var_name
-            total_change_of_val[req_name] = 0
+            change_sum[req_name] = 0
 
             # First we calculate the value of all changes
             # made to the value we are examining
             for event, strength in causing_events_raw:
                 if requirement.full_var_name in event.values_modified:
-                    total_change_of_val[req_name] += abs(strength)
+                    change_sum[req_name] += abs(strength)
 
             # Then we divide the strength of each causing event
             # with the total of all changes to produce a
             # value from 0 to 1.
             for event, strength in causing_events_raw:
                 if (requirement.full_var_name in event.values_modified and
-                        total_change_of_val[req_name] and
+                        change_sum[req_name] and
                         strength):
-                    weighted_strength = abs(strength) / total_change_of_val[req_name]
+                    weighted_strength = abs(strength) / change_sum[req_name]
                     weighted_strength /= len(requirements)
                     causing_events_weighted.append((event,weighted_strength))
 

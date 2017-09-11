@@ -12,6 +12,7 @@ state to be picked.
 """
 import random
 import operator
+from collections import defaultdict
 import selma_file_reader
 import selma_parser as parser
 
@@ -439,6 +440,7 @@ class SelmaEvent:
         self.object = 0
         self.causing_events = []
         self.values_affecting = []
+        self.importance = 0
 
         # We save a record of who played what role in this event
         self.roles = {}
@@ -454,7 +456,7 @@ class SelmaEvent:
         # this event to be executed and all values it depended on.
         # Then find any previous events, which also edited that value.
         # Those events may be considered causing events.
-        causing_events_raw = []
+        causing_events_raw = defaultdict(lambda: 0)
         for requirement in requirements:
             if not requirement.full_var_name in self.values_affecting:
                 self.values_affecting.append(requirement.full_var_name)
@@ -472,7 +474,7 @@ class SelmaEvent:
                     # NEWEST event
                     for event in reversed(previous_events):
                         if requirement.full_var_name in event.values_modified:
-                            self.causing_events.append((event, 1))
+                            causing_events_raw[event] = 1
                             break
 
                 # When it comes to numbers, we treat cards that have to be as
@@ -486,43 +488,46 @@ class SelmaEvent:
                             if (requirement.operator == parser.GREATER_EQUAL or
                                     requirement.operator == parser.GREATER):
                                 if delta >= 0:
-                                    causing_events_raw.append((event, delta))
+                                    causing_events_raw[event] += delta
                             elif (requirement.operator == parser.LESS_EQUAL or
                                   requirement.operator == parser.LESS):
                                 if delta <= 0:
-                                    causing_events_raw.append((event, delta))
+                                    causing_events_raw[event] += delta
 
         # We weight the causation by how big the differnce was.
         # Example: if one event added 50 to happiness and  another one only 5,
         # the weight of the first event will be  10x as big
         change_sum = {}
-        causing_events_weighted = []
+        causing_events_weighted = defaultdict(lambda:0)
         for requirement in requirements:
             req_name = requirement.full_var_name
             change_sum[req_name] = 0
 
             # First we calculate the value of all changes
             # made to the value we are examining
-            for event, strength in causing_events_raw:
+            for event in causing_events_raw:
+                strength = causing_events_raw[event]
                 if requirement.full_var_name in event.values_modified:
                     change_sum[req_name] += abs(strength)
 
             # Then we divide the strength of each causing event
             # with the total of all changes to produce a value from 0 to 1.
-            for event, strength in causing_events_raw:
+            for event in causing_events_raw:
+                strength = causing_events_raw[event]
                 if (requirement.full_var_name in event.values_modified and
                         change_sum[req_name] and
                         strength):
                     weighted_strength = abs(strength) / change_sum[req_name]
                     weighted_strength /= len(requirements)
-                    causing_events_weighted.append((event, weighted_strength))
+                    causing_events_weighted[event] = weighted_strength
 
         # Finally we set the causing events to be the weighted version and
         # sort them by descending size so it becomes easy for users to remove
         # the least important events
-        self.causing_events += causing_events_weighted.copy()
+        self.causing_events += causing_events_weighted.items()
         self.causing_events.sort(key=operator.itemgetter(1))
         self.causing_events.reverse()
+
 
         self.values_modified = {}
         for effect in effects:
@@ -536,7 +541,7 @@ class SelmaEvent:
         """Returns a sentence which describes the event"""
 
         if self.subject and self.object:
-            name = "%s %s to %s" % (self.subject, self.event_name, self.object)
+            name = "%s %s %s" % (self.subject, self.event_name, self.object)
             return name
         elif self.subject:
             name = "%s %s" % (self.subject, self.event_name)

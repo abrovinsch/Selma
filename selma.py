@@ -349,7 +349,7 @@ class SelmaStorySimulation:
         # so we can use it to determine which cards caused event
         requirements = []
         for req in picked_card.conditions:
-            requirements.append(parser.SelmaStatement(self, conditional_statement))
+            requirements.append(parser.SelmaStatement(self, req))
 
         for role in picked_card.roles:
             for line in picked_card.roles[role]:
@@ -404,10 +404,9 @@ class SelmaStorySimulation:
             del self.draw_deck[0] # Discard the oldest card in the deck
         else:
             raise SelmaException(
-                """Cannot add card name '%s to the draw deck
+                """Cannot add card name '%s to the draw deck /
                 because there is no card with that name"""
-                % (card_name)
-            )
+                % (card_name))
 
     def execute_effect(self, effect):
         """Execute an effect on this scope"""
@@ -460,12 +459,9 @@ class SelmaEvent:
             if not requirement.full_var_name in self.values_affecting:
                 self.values_affecting.append(requirement.full_var_name)
 
-                last_event_modifying_value = 0
-
                 # When it comes to lists and strings, OR numbers which
                 # must have a precise value, only the latest edit
                 # of the value is considered to be causing this event
-
                 if (requirement.argument_type == parser.TYPE_STRING or
                         requirement.argument_type == parser.TYPE_LIST or
                         requirement.operator == parser.EQUAL or
@@ -476,7 +472,7 @@ class SelmaEvent:
                     # NEWEST event
                     for event in reversed(previous_events):
                         if requirement.full_var_name in event.values_modified:
-                            self.causing_events.append((event,1))
+                            self.causing_events.append((event, 1))
                             break
 
                 # When it comes to numbers, we treat cards that have to be as
@@ -496,11 +492,9 @@ class SelmaEvent:
                                 if delta <= 0:
                                     causing_events_raw.append((event, delta))
 
-        # We weight the causation by how big the differnce was
-        # Example: if one event added 50 to happiness and
-        # another one only 5, the weight of the first event will be
-        # 10x as big
-
+        # We weight the causation by how big the differnce was.
+        # Example: if one event added 50 to happiness and  another one only 5,
+        # the weight of the first event will be  10x as big
         change_sum = {}
         causing_events_weighted = []
         for requirement in requirements:
@@ -514,19 +508,18 @@ class SelmaEvent:
                     change_sum[req_name] += abs(strength)
 
             # Then we divide the strength of each causing event
-            # with the total of all changes to produce a
-            # value from 0 to 1.
+            # with the total of all changes to produce a value from 0 to 1.
             for event, strength in causing_events_raw:
                 if (requirement.full_var_name in event.values_modified and
                         change_sum[req_name] and
                         strength):
                     weighted_strength = abs(strength) / change_sum[req_name]
                     weighted_strength /= len(requirements)
-                    causing_events_weighted.append((event,weighted_strength))
+                    causing_events_weighted.append((event, weighted_strength))
 
-        # Finally we set the causing events to be the weighted version
-        # and sort them by descending size so it becomes easy
-        # for users to remove the least important events
+        # Finally we set the causing events to be the weighted version and
+        # sort them by descending size so it becomes easy for users to remove
+        # the least important events
         self.causing_events += causing_events_weighted.copy()
         self.causing_events.sort(key=operator.itemgetter(1))
         self.causing_events.reverse()

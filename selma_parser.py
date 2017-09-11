@@ -116,7 +116,7 @@ class SelmaStatement:
         self.full_var_name = matches[0]
         if calling_object.__class__.__name__ == 'SelmaCharacter':
             self.full_var_name = 'cast.%s.%s' % (calling_object.name,
-                                                   self.full_var_name)
+                                                 self.full_var_name)
         elif calling_object.__class__.__name__ == "SelmaStorySimulation":
             if self.full_var_name.startswith("roles"):
 
@@ -319,7 +319,7 @@ def evaluate_condition(obj, line):
         if not statement.var_name in statement.var_holder:
             return False
         if (statement.argument_type == TYPE_INT or
-            statement.argument_type == TYPE_FLOAT):
+                statement.argument_type == TYPE_FLOAT):
             return statement.get_var_value() == parse_as_number(statement.operator,
                                                                 statement.argument)
         if statement.var_type == TYPE_LIST:
@@ -331,7 +331,7 @@ def evaluate_condition(obj, line):
         if not statement.var_name in statement.var_holder:
             return True
         if (statement.argument_type == TYPE_INT
-            or statement.argument_type == TYPE_FLOAT):
+                or statement.argument_type == TYPE_FLOAT):
             return statement.get_var_value() != parse_as_number(statement.operator,
                                                                 statement.argument)
         if statement.var_type == TYPE_LIST:
@@ -395,10 +395,7 @@ def get_variable_reference(parent_object, string):
         var_name = string[:string.index(".")]
         type_name = parent_object.__class__.__name__
 
-        if type_name == "dict":
-            var_holder = parent_object
-        else:
-            var_holder = parent_object.__dict__
+        var_holder = get_var_holder(parent_object)
 
         if var_name in var_holder:
             parent_object = var_holder[var_name]
